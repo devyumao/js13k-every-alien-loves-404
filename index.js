@@ -41,13 +41,46 @@ function initRenderer() {
 }
 
 function createEarth() {
-    var geometry = new THREE.SphereGeometry(10, 64, 64);
-    var textureLoader = new THREE.TextureLoader();
-    textureLoader.load('./asset/map.jpg', texture => {  
-        var material = new THREE.MeshLambertMaterial({ map: texture, transparent: true });
-        earth = new THREE.Mesh(geometry, material);  
-        scene.add(earth);
+    earth = new THREE.Group();
+    var geometry = new THREE.Geometry();
+
+    geometry.vertices.push(
+        new THREE.Vector3( -10,  10, 0 ),
+        new THREE.Vector3( -10, -10, 0 ),
+        new THREE.Vector3(  10, -10, 0 )
+    );
+
+    geometry.faces.push( new THREE.Face3( 0, 1, 2 ) );
+
+    geometry.computeBoundingSphere();
+    var points = window.globalPoints;
+    var material = new THREE.MeshLambertMaterial({
+        color: 0x00ff88,
+        opacity: 0.9,
+        transparent: true,
+        side: THREE.DoubleSide
     });
+    for (var i = 0; i < points.length; i += 3) {
+        var geometry = new THREE.CircleGeometry(0.9, 6);
+        var circle = new THREE.Mesh(geometry, material);
+        var x = points[i] / 3;
+        var y = points[i + 1] / 3;
+        var z = points[i + 2] / 3;
+        circle.position.set(x, y, z);
+        circle.lookAt(0, 0, 0);
+        earth.add(circle);
+    }
+
+    var sphereGeo = new THREE.SphereGeometry(9.8, 64, 64);
+    var sphereMat = new THREE.MeshLambertMaterial({
+        color: 0xccffee,
+        opacity: 0.2,
+        transparent: true
+    });
+    var sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    earth.add(sphere);
+
+    scene.add(earth);
 }
 
 function createUfo() {
