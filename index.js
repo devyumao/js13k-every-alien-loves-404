@@ -2,6 +2,11 @@ var renderer, scene, camera;
 var earth, ufo;
 var keys = [];
 
+var baseAxisX = new THREE.Vector3(1, 0, 0);
+var baseAxisY = new THREE.Vector3(0, 1, 0);
+
+var ROTATION_VEL = Math.PI / 600;
+
 main();
 
 function main() {
@@ -25,7 +30,7 @@ function initScene() {
 
     camera.position.z = 20;
 
-    var light = new THREE.AmbientLight(0xffffff); 
+    var light = new THREE.AmbientLight(0xffffff);
     scene.add(light);
 }
 
@@ -74,16 +79,16 @@ function animate() {
     if (earth) {
         // TODO: 搞点惯性
         if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
-            earth.rotation.x += 0.01;
+            earth.rotateOnWorldAxis(baseAxisX, ROTATION_VEL);
         }
         if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
-            earth.rotation.x -= 0.01;
+            earth.rotateOnWorldAxis(baseAxisX, -ROTATION_VEL);
         }
         if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
-            earth.rotation.y += 0.01;
+            earth.rotateOnWorldAxis(baseAxisY, ROTATION_VEL);
         }
         if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
-            earth.rotation.y -= 0.01;
+            earth.rotateOnWorldAxis(baseAxisY, -ROTATION_VEL);
         }
     }
 
