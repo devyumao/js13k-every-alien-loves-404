@@ -1,3 +1,12 @@
+var EARTH_RADIUS = 10;
+var SPECIMENS_AMOUNT = 10;
+var ROTATION_VEL = Math.PI / 600;
+var UFO_PHI = Math.PI * 0.42;
+var UFO_THETA = 0;
+
+var baseAxisX = new THREE.Vector3(1, 0, 0);
+var baseAxisY = new THREE.Vector3(0, 1, 0);
+
 var resources = {
     earthTexture: null
 };
@@ -9,13 +18,6 @@ var earth, ufo;
 var pivot = new THREE.Group();
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
-
-var baseAxisX = new THREE.Vector3(1, 0, 0);
-var baseAxisY = new THREE.Vector3(0, 1, 0);
-
-var EARTH_RADIUS = 10;
-var SPECIMENS_AMOUNT = 10;
-var ROTATION_VEL = Math.PI / 600;
 
 
 main();
@@ -59,7 +61,9 @@ function initScene() {
     scene.add(pivot);
     pivot.add(specimenGroup, mediaGroup);
 
-    var light = new THREE.AmbientLight(0xffffff);
+    // var light = new THREE.AmbientLight(0xffffff);
+    var light = new THREE.PointLight(0xffffff, 4, 100);
+    light.position.set(50, 50, 50);
     scene.add(light);
 }
 
@@ -78,10 +82,11 @@ function createEarth() {
 
 function createUfo() {
     var geometry = new THREE.ConeGeometry(0.5, 0.25, 32);
-    var material = new THREE.MeshBasicMaterial({ color: 0xffa940 });
+    var material = new THREE.MeshLambertMaterial({ color: 0xffa940 });
     ufo = new THREE.Mesh(geometry, material);
-    ufo.position.set(0, 2, 11);
-    ufo.rotation.x = 1
+    ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
+    ufo.rotation.x = 1;
+    // ufo.lookAt(getVectorFromSphCoord(11, Math.PI / 2, 0));
     scene.add(ufo);
 }
 
@@ -100,21 +105,12 @@ function addMediaPoint(phi, theta) {
 }
 
 function createPoint(phi, theta, color) {
-    var vec = new THREE.Vector3();
-    vec.setFromSphericalCoords(EARTH_RADIUS, phi, theta);
-
     // var point = new THREE.Object3D();
     var geometry = new THREE.SphereGeometry(0.1, 16, 16);
     var material = new THREE.MeshBasicMaterial({ color });
     var point = new THREE.Mesh(geometry, material);
-
-    point.position.set(vec.x, vec.y, vec.z);
-
+    point.position.setFromSphericalCoords(EARTH_RADIUS, phi, theta);
     return point;
-}
-
-function randRad() {
-    return THREE.MathUtils.randFloatSpread(2 * Math.PI);
 }
 
 function onWindowResize() {
@@ -135,7 +131,7 @@ function initControl() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // TODO: 搞点惯性
+    // TODO: inertia
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
         pivot.rotateOnWorldAxis(baseAxisX, ROTATION_VEL);
     }
@@ -150,4 +146,17 @@ function animate() {
     }
 
     renderer.render(scene, camera);
+}
+
+
+// ====== Utils ======
+
+function getVectorFromSphCoord(radius, phi, theta) {
+    var vec = new THREE.Vector3();
+    vec.setFromSphericalCoords(radius, phi, theta);
+    return vec;
+}
+
+function randRad() {
+    return THREE.MathUtils.randFloatSpread(2 * Math.PI);
 }
