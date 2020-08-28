@@ -113,6 +113,13 @@ function createPoint(phi, theta, color) {
     return point;
 }
 
+function calcMinSpecimenAngle() {
+    return specimenGroup.children.reduce(function (a, b) {
+        const angle = ufo.position.angleTo(b.localToWorld(new THREE.Vector3()))
+        return Math.min(a, angle);
+    }, Infinity);
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -130,6 +137,8 @@ function initControl() {
 
 function animate() {
     requestAnimationFrame(animate);
+
+    calcMinSpecimenAngle()
 
     // TODO: inertia
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
