@@ -61,9 +61,9 @@ function initScene() {
     scene.add(pivot);
     pivot.add(specimenGroup, mediaGroup);
 
-    // var light = new THREE.AmbientLight(0xffffff);
-    var light = new THREE.PointLight(0xffffff, 4, 100);
-    light.position.set(50, 50, 50);
+    var light = new THREE.AmbientLight(0xffffff);
+    // var light = new THREE.PointLight(0xffffff, 4, 100);
+    // light.position.set(50, 50, 50);
     scene.add(light);
 }
 
