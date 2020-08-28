@@ -14,7 +14,8 @@ var resources = {
 var renderer, scene, camera;
 var keys = [];
 
-var earth, ufo;
+var earth;
+var ufo = new THREE.Group();
 var pivot = new THREE.Group();
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
@@ -81,9 +82,21 @@ function createEarth() {
 }
 
 function createUfo() {
-    var geometry = new THREE.ConeGeometry(0.5, 0.25, 32);
-    var material = new THREE.MeshLambertMaterial({ color: 0xffa940 });
-    ufo = new THREE.Mesh(geometry, material);
+    var ufoCore = (function () {
+        var geometry = new THREE.SphereGeometry(0.25, 32, 32);
+        var material = new THREE.MeshLambertMaterial({ color: 0xbfbfbf });
+        return new THREE.Mesh(geometry, material);
+    })();
+    ufoCore.position.y = -0.05;
+    ufo.add(ufoCore);
+    
+    var ufoPlate = (function () {
+        var geometry = new THREE.ConeGeometry(0.5, 0.25, 32);
+        var material = new THREE.MeshLambertMaterial({ color: 0x8c8c8c });
+        return new THREE.Mesh(geometry, material);
+    })();
+    ufo.add(ufoPlate);
+
     ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
     // ufo.lookAt(getVectorFromSphCoord(11, Math.PI / 2, 0));
@@ -138,7 +151,7 @@ function initControl() {
 function animate() {
     requestAnimationFrame(animate);
 
-    calcMinSpecimenAngle()
+    calcMinSpecimenAngle();
 
     // TODO: inertia
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
