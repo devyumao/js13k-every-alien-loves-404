@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/devyumao/js13k-every-alien-loves-404#readme",
   "dependencies": {
+    "dat.gui": "^0.7.7",
     "three": "^0.120.0"
   }
 }
