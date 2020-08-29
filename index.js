@@ -16,6 +16,7 @@ var keys = [];
 
 var earth;
 var ufo = new THREE.Group();
+var ufoRay;
 var pivot = new THREE.Group();
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
@@ -82,20 +83,26 @@ function createEarth() {
 }
 
 function createUfo() {
-    var ufoCore = (function () {
-        var geometry = new THREE.SphereGeometry(0.25, 32, 32);
-        var material = new THREE.MeshLambertMaterial({ color: 0xbfbfbf });
-        return new THREE.Mesh(geometry, material);
-    })();
+    var ufoCore = new THREE.Mesh(
+        new THREE.SphereGeometry(0.25, 32, 32),
+        new THREE.MeshLambertMaterial({ color: 0xbfbfbf })
+    );
     ufoCore.position.y = -0.05;
     ufo.add(ufoCore);
-    
-    var ufoPlate = (function () {
-        var geometry = new THREE.ConeGeometry(0.5, 0.25, 32);
-        var material = new THREE.MeshLambertMaterial({ color: 0x8c8c8c });
-        return new THREE.Mesh(geometry, material);
-    })();
+
+    var ufoPlate = new THREE.Mesh(
+        new THREE.ConeGeometry(0.5, 0.25, 32),
+        new THREE.MeshLambertMaterial({ color: 0x8c8c8c })
+    );
     ufo.add(ufoPlate);
+
+    ufoRay = new THREE.Mesh(
+        new THREE.ConeGeometry(0.55, 1, 32),
+        new THREE.MeshLambertMaterial({ color: 0xffec3d })
+    );
+    ufoRay.position.y = -0.25;
+    ufoRay.scale.set(0, 0, 0);
+    ufo.add(ufoRay);
 
     ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
@@ -165,6 +172,19 @@ function animate() {
     }
     if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
         pivot.rotateOnWorldAxis(baseAxisY, -ROTATION_VEL);
+    }
+    
+    if (keys[32]) { // Space
+        // TODO: refactor
+        if (ufoRay.scale.x < 1) {
+            var scaleUp = Math.min(ufoRay.scale.x + 0.02, 0.90);
+            ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
+        }
+    } else {
+        if (ufoRay.scale.x > 0) {
+            var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
+            ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
+        }
     }
 
     renderer.render(scene, camera);
