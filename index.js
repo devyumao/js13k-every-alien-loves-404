@@ -136,20 +136,20 @@ function createEarth() {
 function createUfo() {
     var ufoCore = new THREE.Mesh(
         new THREE.SphereGeometry(0.25, 32, 32),
-        new THREE.MeshLambertMaterial({ color: 0xbfbfbf })
+        new THREE.MeshToonMaterial({ color: 0xbfbfbf })
     );
     ufoCore.position.y = -0.05;
     ufo.add(ufoCore);
 
     var ufoPlate = new THREE.Mesh(
         new THREE.ConeGeometry(0.5, 0.25, 32),
-        new THREE.MeshLambertMaterial({ color: 0x8c8c8c })
+        new THREE.MeshToonMaterial({ color: 0x8c8c8c })
     );
     ufo.add(ufoPlate);
 
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.55, 1, 32),
-        new THREE.MeshLambertMaterial({ color: 0xffec3d })
+        new THREE.MeshToonMaterial({ color: 0xffec3d })
     );
     ufoRay.position.y = -0.25;
     ufoRay.scale.set(0, 0, 0);
