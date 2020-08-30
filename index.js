@@ -22,6 +22,7 @@ var clouds;
 var earthSurface;
 var ufo = new THREE.Group();
 var ufoRay;
+var ufoIndicator;
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
@@ -147,7 +148,7 @@ function createUfo() {
     );
     ufo.add(ufoPlate);
 
-    var ufoIndicator = new THREE.Mesh(
+    ufoIndicator = new THREE.Mesh(
         new THREE.ConeGeometry(0.32, 0.16, 32),
         new THREE.MeshToonMaterial({ color: '#8c8c8c' /* '#d9f7be' */ })
     );
@@ -220,8 +221,6 @@ function initControl() {
 function animate() {
     requestAnimationFrame(animate);
 
-    calcMinSpecimenAngle();
-
     // TODO: inertia
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
         pivot.rotateOnWorldAxis(baseAxisX, ROTATION_VEL);
@@ -250,6 +249,7 @@ function animate() {
     }
 
     updateEarth();
+    updateUfoIndicator();
 
     lastFrame = Date.now();
 
@@ -270,6 +270,15 @@ function updateEarth() {
         );
     }
     earth.geometry.verticesNeedUpdate = true;
+}
+
+function updateUfoIndicator() {
+    var minSpecimenAngle = calcMinSpecimenAngle();
+    if (minSpecimenAngle <= 0.5) {
+        ufoIndicator.material.color = new THREE.Color('#d9f7be');
+    } else {
+        ufoIndicator.material.color = new THREE.Color('#8c8c8c');
+    }
 }
 
 function initDebug() {
