@@ -1,3 +1,5 @@
+var _IS_DEBUG_ = true;
+
 var EARTH_RADIUS = 10;
 var SPECIMENS_AMOUNT = 10;
 var ROTATION_VEL = Math.PI / 600;
@@ -11,25 +13,47 @@ var resources = {
     earthTexture: null
 };
 
-var renderer, scene, camera;
+var renderer, scene, camera, lights, colors;
 var keys = [];
 
+var pivot = new THREE.Group();
 var earth;
+var clouds;
+var earthSurface;
 var ufo = new THREE.Group();
 var ufoRay;
-var pivot = new THREE.Group();
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
+var lastFrame = Date.now();
+
+
+/**
+ * ------------------
+ * DEBUG
+ */
+var gui;
+var guiConfigs;
+/**
+ * END OF DEBUG
+ * ------------------
+ */
 
 main();
 
 function main() {
     loadResources().then(() => {
+        if (_IS_DEBUG_) {
+            initDebug();
+        }
+
         initScene();
+        initLight();
 
         createEarth();
         createUfo();
+
+        pivot.add(specimenGroup, mediaGroup);
 
         initSpecimenPoints();
         // addMediaPoint(2, 0.5);
@@ -45,41 +69,67 @@ function main() {
 }
 
 function loadResources() {
-    var textureLoader = new THREE.TextureLoader();
+    // var textureLoader = new THREE.TextureLoader();
     return new Promise(resolve => {
-        textureLoader.load('./asset/map.jpg', texture => {  
-            resources.earthTexture = texture;
-            resolve();
-        });
+        // textureLoader.load('./asset/map.jpg', texture => {  
+        //     resources.earthTexture = texture;
+        // });
+        resolve();
     });
 }
 
 function initScene() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
     camera.position.z = 20;
+}
 
-    scene.add(pivot);
-    pivot.add(specimenGroup, mediaGroup);
-
-    var light = new THREE.AmbientLight(0xffffff);
-    // var light = new THREE.PointLight(0xffffff, 4, 100);
-    // light.position.set(50, 50, 50);
-    scene.add(light);
+function initLight() {
+    lights = {};
+    lights.key = new THREE.DirectionalLight(colors.key, 0.5);
+    lights.key.position.set(0, 0.2, 0.5);
+    lights.fillTop = new THREE.DirectionalLight(colors.skyA, 1);
+    lights.fillTop.position.set(0.5, 1, 0.75);
+    lights.fillBottom = new THREE.DirectionalLight(colors.skyB, 1);
+    lights.fillBottom.position.set(-0.75, -1, 0.5);
+    lights.ambient = new THREE.AmbientLight(colors.ambient);
+    scene.add(lights.key);
+    scene.add(lights.fillTop);
+    scene.add(lights.fillBottom);
+    scene.add(lights.ambient);
 }
 
 function initRenderer() {
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true
+    });
+    renderer.setPixelRatio((window.devicePixelRatio) ? window.devicePixelRatio : 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.autoClear = false;
+    renderer.setClearColor(0x000000, 0.0);
     document.body.appendChild(renderer.domElement);
 }
 
 function createEarth() {
-    var geometry = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
-    var material = new THREE.MeshLambertMaterial({ map: resources.earthTexture, transparent: true });
-    earth = new THREE.Mesh(geometry, material);
-    pivot.add(earth);
+    var geo = new THREE.IcosahedronGeometry(EARTH_RADIUS, 3);
+    earthSurface = [];
+    for (var i = 0; i < geo.vertices.length; ++i) {
+        earthSurface.push({
+            x: geo.vertices[i].x,
+            y: geo.vertices[i].y,
+            z: geo.vertices[i].z,
+            delta: Math.random() * Math.PI * 2
+        });
+    }
+
+    var mat = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        flatShading: true
+    });
+
+    earth = new THREE.Mesh(geo, mat);
+    scene.add(earth);
 }
 
 function createUfo() {
@@ -140,6 +190,10 @@ function calcMinSpecimenAngle() {
     }, Infinity);
 }
 
+function createClouds() {
+    clouds = new THREE.Group();
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -187,7 +241,131 @@ function animate() {
         }
     }
 
+    updateEarth();
+
+    lastFrame = Date.now();
+
+    renderer.clear();
     renderer.render(scene, camera);
+}
+
+function updateEarth() {
+    var delta = (Date.now() - lastFrame) * 0.002;
+    var vertices = earth.geometry.vertices;
+    for (var i = 0; i < vertices.length; ++i) {
+        earthSurface[i].delta += delta;
+        var scale = Math.sin(earthSurface[i].delta) * 0.06;
+        vertices[i].set(
+            earthSurface[i].x + scale,
+            earthSurface[i].y + scale,
+            earthSurface[i].z + scale
+        );
+    }
+    earth.geometry.verticesNeedUpdate = true;
+}
+
+function initDebug() {
+    gui = new dat.GUI();
+
+    var isNight = false;
+
+    guiConfigs = {
+        'Bg Top': '#912deb',
+        'Bg Bottom': '#59b5e8',
+        'Ambient': '#444',
+        'Key': '#ccc',
+        'Sky A': '#2981a7',
+        'Sky B': '#4629a7',
+        'Change': function () {}
+    };
+    gui.addColor(guiConfigs, 'Bg Top')
+        .onChange(function (val) {
+            document.body.setAttribute(
+                'style',
+                'background:linear-gradient(0deg, '
+                    + val + ' 0%, '
+                    + guiConfigs['Bg Bottom'] + ' 100%);'
+            );
+        });
+    gui.addColor(guiConfigs, 'Bg Bottom')
+        .onChange(function (val) {
+            document.body.setAttribute(
+                'style',
+                'background:linear-gradient(0deg, '
+                    + guiConfigs['Bg Top'] + ' 0%, '
+                    + val + ' 100%);'
+            );
+        });
+
+    gui.addColor(guiConfigs, 'Ambient')
+        .onChange(function (val) {
+            lights.ambient.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Key')
+        .onChange(function (val) {
+            lights.key.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Sky A')
+        .onChange(function (val) {
+            lights.fillTop.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Sky B')
+        .onChange(function (val) {
+            lights.fillBottom.color.set(val);
+        });
+
+    gui.add(guiConfigs, 'Change')
+        .onChange(function () {
+            isNight = !isNight;
+            setTime(isNight);
+        });
+
+    // TODO: if color is chosen, write as fixed string
+    colors = {};
+    colors.bgTop = guiConfigs['Bg Top'];
+    colors.bgBottom = guiConfigs['Bg Bottom'];
+    colors.ambient = guiConfigs['Ambient'];
+    colors.key = guiConfigs['Key'];
+    colors.skyA = guiConfigs['Sky A'];
+    colors.skyB = guiConfigs['Sky B'];
+
+    document.body.setAttribute(
+        'style',
+        'background:linear-gradient(0deg, '
+            + guiConfigs['Bg Top'] + ' 0%, '
+            + guiConfigs['Bg Bottom'] + ' 100%);'
+    );
+
+    function setTime(isNight) {
+        if (isNight) {
+            colors.bgTop = '#200837';
+            colors.bgBottom = '#8c2c2c';
+            colors.ambient = '#000000';
+            colors.key = '#848c4b';
+            colors.skyA = '#cf5631';
+            colors.skyB = '#7f265a';
+        }
+        else {
+            colors.bgTop = '#912deb';
+            colors.bgBottom = '#59b5e8';
+            colors.ambient = '#444';
+            colors.key = '#ccc';
+            colors.skyA = '#2981a7';
+            colors.skyB = '#4629a7';
+        }
+
+        lights.ambient.color.set(colors.ambient);
+        lights.key.color.set(colors.key);
+        lights.fillTop.color.set(colors.skyA);
+        lights.fillBottom.color.set(colors.skyB);
+
+        document.body.setAttribute(
+            'style',
+            'background:linear-gradient(0deg, '
+                + colors.bgTop + ' 0%, '
+                + colors.bgBottom + ' 100%);'
+        );
+    }
 }
 
 
