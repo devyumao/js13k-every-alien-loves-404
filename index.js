@@ -7,6 +7,7 @@ var UFO_PHI = Math.PI * 0.42;
 var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
+// var LAYER_BLOOM = 3;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -16,6 +17,8 @@ var resources = {
 };
 
 var renderer, scene, camera, lights, colors;
+var composer;
+
 var keys = [];
 
 var pivot = new THREE.Group();
@@ -63,6 +66,7 @@ function main() {
         // addMediaPoint(2, 0.5);
 
         initRenderer();
+        // initEffects();
 
         window.addEventListener('resize', onWindowResize, false);
 
@@ -136,6 +140,19 @@ function initRenderer() {
     document.body.appendChild(renderer.domElement);
 }
 
+function initEffects() {
+    var renderScene = new THREE.RenderPass(scene, camera);
+    var bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.21;
+    bloomPass.strength = 1.2;
+    bloomPass.radius = 0.55;
+    bloomPass.renderToScreen = true;
+    composer = new THREE.Effectcomposer(renderer);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+}
+
 function createEarth() {
     var geo = new THREE.IcosahedronGeometry(EARTH_RADIUS, 3);
     earthSurface = [];
@@ -177,11 +194,12 @@ function createUfo() {
         new THREE.MeshToonMaterial({ color: '#8c8c8c' /* '#d9f7be' */ })
     );
     ufoIndicator.position.y = 0.047;
+    // ufoIndicator.layers.enable(LAYER_BLOOM);
     ufo.add(ufoIndicator);
 
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.55, 1, 32),
-        new THREE.MeshToonMaterial({ color: '#ffec3d' })
+        new THREE.MeshToonMaterial({ color: '#ffec3d', opacity: 0.5 })
     );
     ufoRay.position.y = -0.25;
     ufoRay.scale.set(0, 0, 0);
@@ -189,7 +207,6 @@ function createUfo() {
 
     ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
-    // ufo.lookAt(getVectorFromSphCoord(11, Math.PI / 2, 0));
     ufo.layers.set(LAYER_DEFAULT);
     scene.add(ufo);
 }
@@ -232,6 +249,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // composer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function initControl() {
@@ -278,7 +296,13 @@ function animate() {
 
     lastFrame = Date.now();
 
+    // renderer.autoClear = false;
     renderer.clear();
+
+    // camera.layers.set(LAYER_BLOOM);
+    // composer.render();
+    // renderer.clearDepth();
+
     camera.layers.set(LAYER_EARTH);
     renderer.render(scene, camera);
     camera.layers.set(LAYER_DEFAULT);
