@@ -149,20 +149,27 @@ function createEarth() {
 function createUfo() {
     var ufoCore = new THREE.Mesh(
         new THREE.SphereGeometry(0.25, 32, 32),
-        new THREE.MeshLambertMaterial({ color: 0xbfbfbf })
+        new THREE.MeshToonMaterial({ color: '#bfbfbf' })
     );
     ufoCore.position.y = -0.05;
     ufo.add(ufoCore);
 
     var ufoPlate = new THREE.Mesh(
         new THREE.ConeGeometry(0.5, 0.25, 32),
-        new THREE.MeshLambertMaterial({ color: 0x8c8c8c })
+        new THREE.MeshToonMaterial({ color: '#8c8c8c' })
     );
     ufo.add(ufoPlate);
 
+    var ufoIndicator = new THREE.Mesh(
+        new THREE.ConeGeometry(0.32, 0.16, 32),
+        new THREE.MeshToonMaterial({ color: '#8c8c8c' /* '#d9f7be' */ })
+    );
+    ufoIndicator.position.y = 0.047;
+    ufo.add(ufoIndicator);
+
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.55, 1, 32),
-        new THREE.MeshLambertMaterial({ color: 0xffec3d })
+        new THREE.MeshToonMaterial({ color: '#ffec3d' })
     );
     ufoRay.position.y = -0.25;
     ufoRay.scale.set(0, 0, 0);
