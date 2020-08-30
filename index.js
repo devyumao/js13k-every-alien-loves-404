@@ -71,7 +71,7 @@ function main() {
 function loadResources() {
     // var textureLoader = new THREE.TextureLoader();
     return new Promise(resolve => {
-        // textureLoader.load('./asset/map.jpg', texture => {  
+        // textureLoader.load('./asset/map.jpg', texture => {
         //     resources.earthTexture = texture;
         // });
         resolve();
@@ -227,7 +227,7 @@ function animate() {
     if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
         pivot.rotateOnWorldAxis(baseAxisY, -ROTATION_VEL);
     }
-    
+
     if (keys[32]) { // Space
         // TODO: refactor
         if (ufoRay.scale.x < 1) {
@@ -270,12 +270,12 @@ function initDebug() {
     var isNight = false;
 
     guiConfigs = {
-        'Bg Top': '#912deb',
-        'Bg Bottom': '#59b5e8',
+        'Bg Top': '#343659',// '#912deb',
+        'Bg Bottom': '#354055',// '#59b5e8',
         'Ambient': '#444',
-        'Key': '#ccc',
-        'Sky A': '#2981a7',
-        'Sky B': '#4629a7',
+        'Key': '#333b78',// '#ccc',
+        'Sky A': '#295ca7',// '#2981a7',
+        'Sky B': '#5a467f', //'#4629a7',
         'Change': function () {}
     };
     gui.addColor(guiConfigs, 'Bg Top')
@@ -319,6 +319,8 @@ function initDebug() {
             isNight = !isNight;
             setTime(isNight);
         });
+
+    gui.hide();
 
     // TODO: if color is chosen, write as fixed string
     colors = {};
