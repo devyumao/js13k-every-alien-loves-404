@@ -5,6 +5,8 @@ var SPECIMENS_AMOUNT = 10;
 var ROTATION_VEL = Math.PI / 600;
 var UFO_PHI = Math.PI * 0.42;
 var UFO_THETA = 0;
+var LAYER_DEFAULT = 0;
+var LAYER_EARTH = 2;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -82,23 +84,33 @@ function loadResources() {
 
 function initScene() {
     scene = new THREE.Scene();
+
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 20;
+    camera.layers.enable(LAYER_EARTH);
 }
 
 function initLight() {
     lights = {};
+
     lights.key = new THREE.DirectionalLight(colors.key, 0.5);
     lights.key.position.set(0, 0.2, 0.5);
+    lights.ambient = new THREE.AmbientLight(colors.ambient);
+    lights.key.layers.enableAll();
+    lights.ambient.layers.enableAll();
+    scene.add(lights.key);
+    scene.add(lights.ambient);
+
     lights.fillTop = new THREE.DirectionalLight(colors.skyA, 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
     lights.fillBottom = new THREE.DirectionalLight(colors.skyB, 1);
     lights.fillBottom.position.set(-0.5, -1, -0.75);
-    lights.ambient = new THREE.AmbientLight(colors.ambient);
-    scene.add(lights.key);
+    lights.fillTop.layers.disable(LAYER_DEFAULT);
+    lights.fillBottom.layers.disable(LAYER_DEFAULT);
+    lights.fillTop.layers.enable(LAYER_EARTH);
+    lights.fillBottom.layers.enable(LAYER_EARTH);
     pivot.add(lights.fillTop);
     pivot.add(lights.fillBottom);
-    scene.add(lights.ambient);
 }
 
 function initRenderer() {
@@ -131,6 +143,7 @@ function createEarth() {
     });
 
     earth = new THREE.Mesh(geo, mat);
+    earth.layers.set(LAYER_EARTH);
     pivot.add(earth);
 }
 
@@ -166,6 +179,7 @@ function createUfo() {
     ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
     // ufo.lookAt(getVectorFromSphCoord(11, Math.PI / 2, 0));
+    ufo.layers.set(LAYER_DEFAULT);
     scene.add(ufo);
 }
 
@@ -254,6 +268,9 @@ function animate() {
     lastFrame = Date.now();
 
     renderer.clear();
+    camera.layers.set(LAYER_EARTH);
+    renderer.render(scene, camera);
+    camera.layers.set(LAYER_DEFAULT);
     renderer.render(scene, camera);
 }
 
