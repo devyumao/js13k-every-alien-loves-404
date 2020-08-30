@@ -4,11 +4,30 @@
     <meta charset="utf-8">
     <title>Alien</title>
     <style>
-        body { margin: 0; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+        }
+        canvas {
+            display: block;
+        }
+        .ui {
+            z-index: 1;
+        }
+        #radar {
+            position: absolute;
+            left: 30px;
+            bottom: 30px;
+            width: 100px;
+            height: 100px;
+            border-radius: 100%;
+            background: #fff;
+        }
     </style>
 </head>
 <body>
+    <!-- <div class="ui">
+        <div id="radar"></div>
+    </div> -->
     <script src="./node_modules/three/build/three.js"></script>
     <script src="./index.js"></script>
 </body>

@@ -177,7 +177,7 @@ function animate() {
     if (keys[32]) { // Space
         // TODO: refactor
         if (ufoRay.scale.x < 1) {
-            var scaleUp = Math.min(ufoRay.scale.x + 0.02, 0.90);
+            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.90);
             ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
         }
     } else {
