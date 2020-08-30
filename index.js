@@ -101,16 +101,27 @@ function initLight() {
     scene.add(lights.key);
     scene.add(lights.ambient);
 
-    lights.fillTop = new THREE.DirectionalLight(colors.skyA, 1);
+    lights.fillTop = new THREE.DirectionalLight('#333', 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
-    lights.fillBottom = new THREE.DirectionalLight(colors.skyB, 1);
+    lights.fillBottom = new THREE.DirectionalLight('#333', 1);
     lights.fillBottom.position.set(-0.5, -1, -0.75);
-    lights.fillTop.layers.disable(LAYER_DEFAULT);
-    lights.fillBottom.layers.disable(LAYER_DEFAULT);
-    lights.fillTop.layers.enable(LAYER_EARTH);
-    lights.fillBottom.layers.enable(LAYER_EARTH);
+    lights.fillTop.layers.enable(LAYER_DEFAULT);
+    lights.fillBottom.layers.enable(LAYER_DEFAULT);
+    lights.fillTop.layers.disable(LAYER_EARTH);
+    lights.fillBottom.layers.disable(LAYER_EARTH);
     pivot.add(lights.fillTop);
     pivot.add(lights.fillBottom);
+
+    lights.fillTopEarth = new THREE.DirectionalLight(colors.skyA, 1);
+    lights.fillTopEarth.position.set(0.5, 1, 0.75);
+    lights.fillBottomEarth = new THREE.DirectionalLight(colors.skyB, 1);
+    lights.fillBottomEarth.position.set(-0.5, -1, -0.75);
+    lights.fillTopEarth.layers.disable(LAYER_DEFAULT);
+    lights.fillBottomEarth.layers.disable(LAYER_DEFAULT);
+    lights.fillTopEarth.layers.enable(LAYER_EARTH);
+    lights.fillBottomEarth.layers.enable(LAYER_EARTH);
+    pivot.add(lights.fillTopEarth);
+    pivot.add(lights.fillBottomEarth);
 }
 
 function initRenderer() {
@@ -292,7 +303,7 @@ function updateEarth() {
 function updateUfoIndicator() {
     var minSpecimenAngle = calcMinSpecimenAngle();
     if (minSpecimenAngle <= 0.5) {
-        ufoIndicator.material.color = new THREE.Color('#d9f7be');
+        ufoIndicator.material.color = new THREE.Color('#b7eb8f');
     } else {
         ufoIndicator.material.color = new THREE.Color('#8c8c8c');
     }
@@ -342,11 +353,11 @@ function initDebug() {
         });
     gui.addColor(guiConfigs, 'Sky A')
         .onChange(function (val) {
-            lights.fillTop.color.set(val);
+            lights.fillTopEarth.color.set(val);
         });
     gui.addColor(guiConfigs, 'Sky B')
         .onChange(function (val) {
-            lights.fillBottom.color.set(val);
+            lights.fillBottomEarth.color.set(val);
         });
     gui.addColor(guiConfigs, 'Ocean')
         .onChange(function (val) {
@@ -397,8 +408,8 @@ function initDebug() {
 
         lights.ambient.color.set(colors.ambient);
         lights.key.color.set(colors.key);
-        lights.fillTop.color.set(colors.skyA);
-        lights.fillBottom.color.set(colors.skyB);
+        lights.fillTopEarth.color.set(colors.skyA);
+        lights.fillBottomEarth.color.set(colors.skyB);
 
         document.body.setAttribute(
             'style',
