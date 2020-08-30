@@ -1,6 +1,7 @@
 var _IS_DEBUG_ = true;
 
-var EARTH_RADIUS = 10;
+var RADIUS_EARTH = 10;
+var RADIUS_LAND = 10.1;
 var SPECIMENS_AMOUNT = 10;
 var ROTATION_VEL = Math.PI / 600;
 var UFO_PHI = Math.PI * 0.42;
@@ -19,9 +20,9 @@ var renderer, scene, camera, lights, colors;
 var keys = [];
 
 var pivot = new THREE.Group();
-var earth;
-var clouds;
-var earthSurface;
+var earth, earthSurface;
+var clouds, cloudsSurface;
+var land, landSurface;
 var ufo = new THREE.Group();
 var ufoRay;
 var specimenGroup = new THREE.Group();
@@ -54,6 +55,8 @@ function main() {
 
         createEarth();
         createUfo();
+        createClouds();
+        createLand();
 
         pivot.add(specimenGroup, mediaGroup);
         scene.add(pivot);
@@ -92,23 +95,33 @@ function initScene() {
 function initLight() {
     lights = {};
 
-    lights.key = new THREE.DirectionalLight(colors.key, 0.5);
-    lights.key.position.set(0, 0.2, 0.5);
-    lights.ambient = new THREE.AmbientLight(colors.ambient);
-    lights.key.layers.enableAll();
+    lights.ambient = new THREE.AmbientLight(colors.ambient, 0.5);
     lights.ambient.layers.enableAll();
-    scene.add(lights.key);
     scene.add(lights.ambient);
+
+    lights.key = new THREE.DirectionalLight(colors.key, 0.5);
+    lights.key.position.set(0.5, 0.5, 1);
+    lights.key.layers.enableAll();
+    scene.add(lights.key);
+
+    lights.spot = new THREE.SpotLight('#fc6', 0.3, 100, Math.PI / 12, 0.5, 2);
+    lights.spot.position.set(0, 5, 20);
+    lights.spot.lookAt(0, 0, 0);
+    lights.spot.shadow.mapSize.width = 1024;
+    lights.spot.shadow.mapSize.height = 1024;
+    lights.spot.layers.enableAll();
+    scene.add(lights.spot);
 
     lights.fillTop = new THREE.DirectionalLight(colors.skyA, 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
+    lights.fillTop.layers.disable(LAYER_DEFAULT);
+    lights.fillTop.layers.enable(LAYER_EARTH);
+    pivot.add(lights.fillTop);
+
     lights.fillBottom = new THREE.DirectionalLight(colors.skyB, 1);
     lights.fillBottom.position.set(-0.5, -1, -0.75);
-    lights.fillTop.layers.disable(LAYER_DEFAULT);
     lights.fillBottom.layers.disable(LAYER_DEFAULT);
-    lights.fillTop.layers.enable(LAYER_EARTH);
     lights.fillBottom.layers.enable(LAYER_EARTH);
-    pivot.add(lights.fillTop);
     pivot.add(lights.fillBottom);
 }
 
@@ -125,7 +138,7 @@ function initRenderer() {
 }
 
 function createEarth() {
-    var geo = new THREE.IcosahedronGeometry(EARTH_RADIUS, 3);
+    var geo = new THREE.IcosahedronGeometry(RADIUS_EARTH, 3);
     earthSurface = [];
     for (var i = 0; i < geo.vertices.length; ++i) {
         earthSurface.push({
@@ -138,7 +151,8 @@ function createEarth() {
 
     var mat = new THREE.MeshPhongMaterial({
         color: '#75e8e1',
-        flatShading: true
+        flatShading: true,
+        // wireframe: true
     });
 
     earth = new THREE.Mesh(geo, mat);
@@ -179,7 +193,7 @@ function createUfo() {
     ufo.rotation.x = 1;
     // ufo.lookAt(getVectorFromSphCoord(11, Math.PI / 2, 0));
     ufo.layers.set(LAYER_DEFAULT);
-    scene.add(ufo);
+    // scene.add(ufo);
 }
 
 function initSpecimenPoints() {
@@ -201,7 +215,7 @@ function createPoint(phi, theta, color) {
     var geometry = new THREE.SphereGeometry(0.1, 16, 16);
     var material = new THREE.MeshBasicMaterial({ color });
     var point = new THREE.Mesh(geometry, material);
-    point.position.setFromSphericalCoords(EARTH_RADIUS, phi, theta);
+    point.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
     return point;
 }
 
@@ -212,8 +226,42 @@ function calcMinSpecimenAngle() {
     }, Infinity);
 }
 
+function createLand() {
+    var mat = new THREE.MeshPhongMaterial({
+        color: '#7ee48c',
+        flatShading: true,
+        // wireframe: true
+    });
+
+    var geo = new THREE.IcosahedronGeometry(RADIUS_LAND, 3);
+    land = new THREE.Mesh(geo, mat);
+    land.layers.set(LAYER_EARTH);
+    pivot.add(land);
+
+    landSurface = [];
+    for (var i = 0; i < geo.vertices.length; ++i) {
+        landSurface.push(1);
+    }
+    for (var i = 0; i < geo.vertices.length; ++i) {
+        var vertex = geo.vertices[i];
+        // Some random functions to calculate land and ocean
+        if (
+            vertex.x * vertex.x + vertex.y * vertex.y > 100
+                && (vertex.x * vertex.y - vertex.z > 14)
+            || vertex.y * vertex.x + vertex.y * vertex.z > 50
+                && (vertex.y * vertex.x + vertex.y * vertex.z < 65)
+            || vertex.x * vertex.z - vertex.y > 50
+            || vertex.y * vertex.x - vertex.z < -20
+        ) {
+            geo.vertices[i].multiplyScalar(0.6);
+        }
+    }
+    geo.verticesNeedUpdate = true;
+}
+
 function createClouds() {
-    clouds = new THREE.Group();
+    // clouds = new THREE.Group();
+    // pivot.add(clouds);
 }
 
 function onWindowResize() {
@@ -263,7 +311,9 @@ function animate() {
         }
     }
 
-    updateEarth();
+    var delta = Date.now() - lastFrame;
+    updateEarth(delta);
+    updateClouds(delta);
 
     lastFrame = Date.now();
 
@@ -274,19 +324,27 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-function updateEarth() {
-    var delta = (Date.now() - lastFrame) * 0.002;
+function updateEarth(delta) {
     var vertices = earth.geometry.vertices;
     for (var i = 0; i < vertices.length; ++i) {
-        earthSurface[i].delta += delta;
-        var scale = Math.sin(earthSurface[i].delta) * 0.06;
+        var s = earthSurface[i];
+        s.delta += delta * 0.002;
+        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_EARTH - 0.1);
         vertices[i].set(
-            earthSurface[i].x + scale,
-            earthSurface[i].y + scale,
-            earthSurface[i].z + scale
+            s.x + scale,
+            s.y + scale,
+            s.z + scale
         );
     }
     earth.geometry.verticesNeedUpdate = true;
+}
+
+function updateClouds(delta) {
+    // for (var i = 0; i < cloudsSurface.length; ++i) {
+    //     cloudsSurface[i].delta += delta * 0.002;
+    //     var scale = Math.sin(cloudsSurface[i].delta) * 0.06;
+    //     clouds.children[i].scale.setScalar(1 + scale);
+    // }
 }
 
 function initDebug() {
@@ -298,7 +356,7 @@ function initDebug() {
         'Bg Top': '#252541',// '#912deb',
         'Bg Bottom': '#384c7f',// '#59b5e8',
         'Ambient': '#666666',
-        'Key': '#6077af',// '#ccc',
+        'Key': '#ddd',// '#ccc',
         'Sky A': '#297aa7',// '#2981a7',
         'Sky B': '#3434c0', //'#4629a7',
         'Ocean': '#75e8e1',
