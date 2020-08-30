@@ -54,6 +54,7 @@ function main() {
         createUfo();
 
         pivot.add(specimenGroup, mediaGroup);
+        scene.add(pivot);
 
         initSpecimenPoints();
         // addMediaPoint(2, 0.5);
@@ -91,11 +92,11 @@ function initLight() {
     lights.fillTop = new THREE.DirectionalLight(colors.skyA, 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
     lights.fillBottom = new THREE.DirectionalLight(colors.skyB, 1);
-    lights.fillBottom.position.set(-0.75, -1, 0.5);
+    lights.fillBottom.position.set(-0.5, -1, -0.75);
     lights.ambient = new THREE.AmbientLight(colors.ambient);
     scene.add(lights.key);
-    scene.add(lights.fillTop);
-    scene.add(lights.fillBottom);
+    pivot.add(lights.fillTop);
+    pivot.add(lights.fillBottom);
     scene.add(lights.ambient);
 }
 
@@ -124,12 +125,12 @@ function createEarth() {
     }
 
     var mat = new THREE.MeshPhongMaterial({
-        color: 0xffffff,
+        color: '#75e8e1',
         flatShading: true
     });
 
     earth = new THREE.Mesh(geo, mat);
-    scene.add(earth);
+    pivot.add(earth);
 }
 
 function createUfo() {
@@ -270,12 +271,13 @@ function initDebug() {
     var isNight = false;
 
     guiConfigs = {
-        'Bg Top': '#343659',// '#912deb',
-        'Bg Bottom': '#354055',// '#59b5e8',
-        'Ambient': '#444',
-        'Key': '#333b78',// '#ccc',
-        'Sky A': '#295ca7',// '#2981a7',
-        'Sky B': '#5a467f', //'#4629a7',
+        'Bg Top': '#252541',// '#912deb',
+        'Bg Bottom': '#384c7f',// '#59b5e8',
+        'Ambient': '#666666',
+        'Key': '#6077af',// '#ccc',
+        'Sky A': '#297aa7',// '#2981a7',
+        'Sky B': '#3434c0', //'#4629a7',
+        'Ocean': '#75e8e1',
         'Change': function () {}
     };
     gui.addColor(guiConfigs, 'Bg Top')
@@ -312,6 +314,10 @@ function initDebug() {
     gui.addColor(guiConfigs, 'Sky B')
         .onChange(function (val) {
             lights.fillBottom.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Ocean')
+        .onChange(function (val) {
+            earth.material.color.set(val);
         });
 
     gui.add(guiConfigs, 'Change')
