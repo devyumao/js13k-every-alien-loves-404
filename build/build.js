@@ -39,10 +39,12 @@ function buildHtml() {
         'https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.min.js'
     );
 
-    htmlSrc = htmlSrc.replace(
-        '<script src="./node_modules/dat.gui/build/dat.gui.js"></script>',
-        ''
-    );
+    [
+        '<script src="./node_modules/stats.js/build/stats.min.js"></script>',
+        '<script src="./node_modules/dat.gui/build/dat.gui.js"></script>'
+    ].forEach(txt => {
+        htmlSrc = htmlSrc.replace(txt, '');
+    });
 
     const htmlDist = htmlMinify(htmlSrc, {
     //   removeAttributeQuotes: true,

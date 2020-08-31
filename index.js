@@ -58,10 +58,10 @@ var colors = {
     'Change': function () {}
 };
 
-
 // DEBUG
 var gui;
 var guiConfigs;
+var stats;
 // DEBUG END
 
 main();
@@ -128,11 +128,12 @@ function initLight() {
     lights = {};
 
     lights.ambient = new THREE.AmbientLight(colors.ambient, 0.5);
-    lights.ambient.layers.enableAll();
+    lights.ambient.layers.enable(LAYER_EARTH);
+    lights.ambient.layers.disable(LAYER_DEFAULT);
     scene.add(lights.ambient);
 
-    lights.key = new THREE.DirectionalLight(colors.key, 0.5);
-    lights.key.position.set(0.5, 0.5, 1);
+    lights.key = new THREE.DirectionalLight(colors.key, 0.8);
+    lights.key.position.set(0, 0.5, 1);
     lights.key.layers.enableAll();
     scene.add(lights.key);
 
@@ -163,8 +164,8 @@ function initLight() {
     lights.fillBottomEarth.layers.disable(LAYER_DEFAULT);
     lights.fillTopEarth.layers.enable(LAYER_EARTH);
     lights.fillBottomEarth.layers.enable(LAYER_EARTH);
-    pivot.add(lights.fillTopEarth);
-    pivot.add(lights.fillBottomEarth);
+    // pivot.add(lights.fillTopEarth);
+    // pivot.add(lights.fillBottomEarth);
 }
 
 function initRenderer() {
@@ -373,7 +374,9 @@ function initControl() {
 }
 
 function animate() {
-    requestAnimationFrame(animate);
+    // DEBUG
+    stats.begin();
+    // DEBUG END
 
     updateVelocity();
     updateMovement();
@@ -413,6 +416,12 @@ function animate() {
     renderer.render(scene, camera);
     camera.layers.set(LAYER_DEFAULT);
     renderer.render(scene, camera);
+
+    // DEBUG
+	stats.end();
+    // DEBUG END
+
+    requestAnimationFrame(animate);
 }
 
 function updateEarth(delta) {
@@ -586,6 +595,10 @@ function initDebug() {
         });
 
     gui.hide();
+
+    stats = new Stats();
+    stats.showPanel(0);
+    document.body.appendChild(stats.dom);
 }
 // DEBUG END
 
