@@ -10,8 +10,8 @@ var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
 var LAYER_UI = 4;
-const MAX_TRACK_POINTS = 10;
-const MAX_MEDIUM = 8;
+var MAX_TRACK_POINTS = 10;
+var MAX_MEDIUM = 8;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -273,7 +273,7 @@ function addPointToTrack() {
 
 function calcMinSpecimenAngle() {
     return specimenGroup.children.reduce(function (min, item) {
-        const angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
+        var angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
         item.userData.angle = angle;
         return Math.min(min, angle);
     }, Infinity);
