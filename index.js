@@ -254,8 +254,6 @@ function createUfo() {
 
     ufoOriginRotation = ufo.rotation.clone();
 
-    console.log(ufoOriginRotation);
-
     mixer = new THREE.AnimationMixer(ufo);
     var pos1 = ufo.position;
     var pos2 = getVectorFromSphCoord(RADIUS_UFO_POS + 0.35, UFO_PHI, UFO_THETA);
@@ -502,6 +500,9 @@ function updateUfo() {
 function updateUfoRotation() {
     ufo.rotation.x = ufoOriginRotation.x - angularVel.phi * 30;
     ufo.rotation.z = ufoOriginRotation.z + angularVel.theta * 30;
+
+    camera.position.y = -angularVel.phi * 50;
+    camera.position.x = -angularVel.theta * 50;
 }
 
 function updateUfoActions() {
