@@ -144,7 +144,7 @@ function initLight() {
     lights.spot.shadow.mapSize.width = 1024;
     lights.spot.shadow.mapSize.height = 1024;
     lights.spot.layers.enableAll();
-    scene.add(lights.spot);
+    // scene.add(lights.spot);
 
     lights.fillTop = new THREE.DirectionalLight('#333', 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
