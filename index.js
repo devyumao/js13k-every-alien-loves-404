@@ -45,25 +45,37 @@ var angularVel = { phi: 0, theta: 0 };
 var lastFrame = Date.now();
 var trackTime = Date.now();
 
+var colors = {
+    'Bg Top': '#252541',// '#912deb',
+    'Bg Bottom': '#384c7f',// '#59b5e8',
+    'Ambient': '#666666',
+    'Key': '#ddd',// '#ccc',
+    'Sky A': '#297aa7',// '#2981a7',
+    'Sky B': '#3434c0', //'#4629a7',
+    'Ocean': '#75e8e1',
+    'Change': function () {}
+};
 
-/**
- * ------------------
- * DEBUG
- */
+
+// DEBUG
 var gui;
 var guiConfigs;
-/**
- * END OF DEBUG
- * ------------------
- */
+// DEBUG END
 
 main();
 
 function main() {
+    document.body.setAttribute(
+        'style',
+        'background:linear-gradient(0deg, '
+            + colors['Bg Top'] + ' 0%, '
+            + colors['Bg Bottom'] + ' 100%);'
+    );
+
     loadResources().then(() => {
-        if (_IS_DEBUG_) {
-            initDebug();
-        }
+        // DEBUG
+        initDebug();
+        // DEBUG END
 
         initScene();
         initLight();
@@ -493,21 +505,13 @@ function updateMedium() {
     trackMediaMap[key] = true;
 }
 
+// DEBUG
 function initDebug() {
     gui = new dat.GUI();
 
     var isNight = false;
 
-    guiConfigs = {
-        'Bg Top': '#252541',// '#912deb',
-        'Bg Bottom': '#384c7f',// '#59b5e8',
-        'Ambient': '#666666',
-        'Key': '#ddd',// '#ccc',
-        'Sky A': '#297aa7',// '#2981a7',
-        'Sky B': '#3434c0', //'#4629a7',
-        'Ocean': '#75e8e1',
-        'Change': function () {}
-    };
+    guiConfigs = Object.assign({}, colors);
     gui.addColor(guiConfigs, 'Bg Top')
         .onChange(function (val) {
             document.body.setAttribute(
@@ -555,54 +559,8 @@ function initDebug() {
         });
 
     gui.hide();
-
-    // TODO: if color is chosen, write as fixed string
-    colors = {};
-    colors.bgTop = guiConfigs['Bg Top'];
-    colors.bgBottom = guiConfigs['Bg Bottom'];
-    colors.ambient = guiConfigs['Ambient'];
-    colors.key = guiConfigs['Key'];
-    colors.skyA = guiConfigs['Sky A'];
-    colors.skyB = guiConfigs['Sky B'];
-
-    document.body.setAttribute(
-        'style',
-        'background:linear-gradient(0deg, '
-            + guiConfigs['Bg Top'] + ' 0%, '
-            + guiConfigs['Bg Bottom'] + ' 100%);'
-    );
-
-    function setTime(isNight) {
-        if (isNight) {
-            colors.bgTop = '#200837';
-            colors.bgBottom = '#8c2c2c';
-            colors.ambient = '#000000';
-            colors.key = '#848c4b';
-            colors.skyA = '#cf5631';
-            colors.skyB = '#7f265a';
-        }
-        else {
-            colors.bgTop = '#912deb';
-            colors.bgBottom = '#59b5e8';
-            colors.ambient = '#444';
-            colors.key = '#ccc';
-            colors.skyA = '#2981a7';
-            colors.skyB = '#4629a7';
-        }
-
-        lights.ambient.color.set(colors.ambient);
-        lights.key.color.set(colors.key);
-        lights.fillTopEarth.color.set(colors.skyA);
-        lights.fillBottomEarth.color.set(colors.skyB);
-
-        document.body.setAttribute(
-            'style',
-            'background:linear-gradient(0deg, '
-                + colors.bgTop + ' 0%, '
-                + colors.bgBottom + ' 100%);'
-        );
-    }
 }
+// DEBUG END
 
 
 // ====== Utils ======

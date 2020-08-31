@@ -7,7 +7,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node build/build.js"
   },
   "repository": {
     "type": "git",
@@ -22,5 +22,12 @@
   "dependencies": {
     "dat.gui": "^0.7.7",
     "three": "^0.120.0"
+  },
+  "devDependencies": {
+    "chalk": "^4.1.0",
+    "html-minifier": "^4.0.0",
+    "node-minify": "^3.6.0",
+    "node-zip": "^1.1.1",
+    "uglify-js": "^3.10.3"
   }
 }
