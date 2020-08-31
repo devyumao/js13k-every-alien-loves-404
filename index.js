@@ -501,8 +501,8 @@ function updateUfoRotation() {
     ufo.rotation.x = ufoOriginRotation.x - angularVel.phi * 30;
     ufo.rotation.z = ufoOriginRotation.z + angularVel.theta * 30;
 
-    camera.position.y = -angularVel.phi * 50;
-    camera.position.x = angularVel.theta * 50;
+    // camera.position.y = -angularVel.phi * 50;
+    // camera.position.x = angularVel.theta * 50;
 }
 
 function updateUfoActions() {
