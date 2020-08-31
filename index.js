@@ -2,6 +2,7 @@ var _IS_DEBUG_ = true;
 
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
+var RADIUS_UFO_POS = 11;
 var SPECIMENS_AMOUNT = 10;
 var ANGULAR_VEL = Math.PI / 600;
 var ANGULAR_ACC = ANGULAR_VEL / 30;
@@ -21,7 +22,7 @@ var resources = {
     earthTexture: null
 };
 
-var renderer, scene, camera, lights, colors;
+var renderer, scene, camera, mixer, lights, colors;
 var composer;
 
 var keys = [];
@@ -41,8 +42,9 @@ var pathLength = 0;
 var lastPosition;
 var trackMediaMap = {};
 var angularVel = { phi: 0, theta: 0 };
+var ufoIdleAction;
 
-var lastFrame = Date.now();
+var clock;
 var trackTime = Date.now();
 
 
@@ -82,6 +84,8 @@ function main() {
         initRenderer();
         // initEffects();
 
+        clock = new THREE.Clock();
+
         window.addEventListener('resize', onWindowResize, false);
 
         initControl();
@@ -120,7 +124,7 @@ function initLight() {
     lights.key.layers.enableAll();
     scene.add(lights.key);
 
-    lights.spot = new THREE.SpotLight('#fc6', 0.3, 100, Math.PI / 12, 0.5, 2);
+    lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, Math.PI / 12, 0.5, 2);
     lights.spot.position.set(0, 5, 20);
     lights.spot.lookAt(0, 0, 0);
     lights.spot.shadow.mapSize.width = 1024;
@@ -229,10 +233,24 @@ function createUfo() {
     ufoRay.scale.set(0, 0, 0);
     ufo.add(ufoRay);
 
-    ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
+    ufo.position.setFromSphericalCoords(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
     ufo.layers.set(LAYER_DEFAULT);
     scene.add(ufo);
+
+    mixer = new THREE.AnimationMixer(ufo);
+    var pos1 = ufo.position;
+    var pos2 = getVectorFromSphCoord(RADIUS_UFO_POS + 0.35, UFO_PHI, UFO_THETA);
+    var posTrack = new THREE.VectorKeyframeTrack(
+        '.position',
+        [0, 1],
+        [pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z],
+        // THREE.InterpolateSmooth
+    );
+    var clip = new THREE.AnimationClip('UfoIdle', 0.8, [posTrack]);
+    ufoIdleAction = mixer.clipAction(clip);
+    ufoIdleAction.loop = THREE.LoopPingPong;
+    ufoIdleAction.play();
 }
 
 function initSpecimenPoints() {
@@ -361,16 +379,16 @@ function animate() {
         }
     }
 
-    var delta = Date.now() - lastFrame;
-    updateEarth(delta);
-    updateClouds(delta);
-    updateUfoIndicator();
+    var delta = clock.getDelta();
+    updateEarth(delta * 1e3);
+    updateClouds(delta * 1e3);
+    updateUfo();
 
     updatePathLength();
     updateTrack();
     updateMedium();
 
-    lastFrame = Date.now();
+    mixer.update(delta);
 
     // renderer.autoClear = false;
     renderer.clear();
@@ -447,6 +465,15 @@ function updateVelocity() {
 function updateMovement() {
     angularVel.phi && pivot.rotateOnWorldAxis(baseAxisX, angularVel.phi);
     angularVel.theta && pivot.rotateOnWorldAxis(baseAxisY, angularVel.theta);
+}
+
+function updateUfo() {
+    updateUfoActions();
+    updateUfoIndicator();
+}
+
+function updateUfoActions() {
+    ufoIdleAction.paused = angularVel.phi || angularVel.theta;
 }
 
 function updateUfoIndicator() {
