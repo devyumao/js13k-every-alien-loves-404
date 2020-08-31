@@ -8,6 +8,10 @@ var UFO_PHI = Math.PI * 0.42;
 var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
+// var LAYER_BLOOM = 3;
+var LAYER_UI = 4;
+const MAX_TRACK_POINTS = 10;
+const MAX_MEDIUM = 8;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -17,6 +21,8 @@ var resources = {
 };
 
 var renderer, scene, camera, lights, colors;
+var composer;
+
 var keys = [];
 
 var pivot = new THREE.Group();
@@ -25,10 +31,17 @@ var clouds, cloudsSurface;
 var land, landSurface;
 var ufo = new THREE.Group();
 var ufoRay;
+var ufoIndicator;
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
+var track = new THREE.Group();
+var pathLength = 0;
+var lastPosition;
+var trackMediaMap = {};
+
 var lastFrame = Date.now();
+var trackTime = Date.now();
 
 
 /**
@@ -58,13 +71,14 @@ function main() {
         createClouds();
         createLand();
 
-        pivot.add(specimenGroup, mediaGroup);
+        pivot.add(specimenGroup, mediaGroup, track);
         scene.add(pivot);
 
         initSpecimenPoints();
         // addMediaPoint(2, 0.5);
 
         initRenderer();
+        // initEffects();
 
         window.addEventListener('resize', onWindowResize, false);
 
@@ -112,17 +126,27 @@ function initLight() {
     lights.spot.layers.enableAll();
     scene.add(lights.spot);
 
-    lights.fillTop = new THREE.DirectionalLight(colors.skyA, 1);
+    lights.fillTop = new THREE.DirectionalLight('#333', 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
-    lights.fillTop.layers.disable(LAYER_DEFAULT);
-    lights.fillTop.layers.enable(LAYER_EARTH);
-    pivot.add(lights.fillTop);
-
-    lights.fillBottom = new THREE.DirectionalLight(colors.skyB, 1);
+    lights.fillBottom = new THREE.DirectionalLight('#333', 1);
     lights.fillBottom.position.set(-0.5, -1, -0.75);
-    lights.fillBottom.layers.disable(LAYER_DEFAULT);
-    lights.fillBottom.layers.enable(LAYER_EARTH);
+    lights.fillTop.layers.enable(LAYER_DEFAULT);
+    lights.fillBottom.layers.enable(LAYER_DEFAULT);
+    lights.fillTop.layers.disable(LAYER_EARTH);
+    lights.fillBottom.layers.disable(LAYER_EARTH);
+    pivot.add(lights.fillTop);
     pivot.add(lights.fillBottom);
+
+    lights.fillTopEarth = new THREE.DirectionalLight(colors.skyA, 1);
+    lights.fillTopEarth.position.set(0.5, 1, 0.75);
+    lights.fillBottomEarth = new THREE.DirectionalLight(colors.skyB, 1);
+    lights.fillBottomEarth.position.set(-0.5, -1, -0.75);
+    lights.fillTopEarth.layers.disable(LAYER_DEFAULT);
+    lights.fillBottomEarth.layers.disable(LAYER_DEFAULT);
+    lights.fillTopEarth.layers.enable(LAYER_EARTH);
+    lights.fillBottomEarth.layers.enable(LAYER_EARTH);
+    pivot.add(lights.fillTopEarth);
+    pivot.add(lights.fillBottomEarth);
 }
 
 function initRenderer() {
@@ -135,6 +159,19 @@ function initRenderer() {
     renderer.autoClear = false;
     renderer.setClearColor(0x000000, 0.0);
     document.body.appendChild(renderer.domElement);
+}
+
+function initEffects() {
+    var renderScene = new THREE.RenderPass(scene, camera);
+    var bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.21;
+    bloomPass.strength = 1.2;
+    bloomPass.radius = 0.55;
+    bloomPass.renderToScreen = true;
+    composer = new THREE.Effectcomposer(renderer);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
 }
 
 function createEarth() {
@@ -174,16 +211,17 @@ function createUfo() {
     );
     ufo.add(ufoPlate);
 
-    var ufoIndicator = new THREE.Mesh(
+    ufoIndicator = new THREE.Mesh(
         new THREE.ConeGeometry(0.32, 0.16, 32),
-        new THREE.MeshToonMaterial({ color: '#8c8c8c' /* '#d9f7be' */ })
+        new THREE.MeshToonMaterial({ color: '#8c8c8c' })
     );
     ufoIndicator.position.y = 0.047;
+    // ufoIndicator.layers.enable(LAYER_BLOOM);
     ufo.add(ufoIndicator);
 
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.55, 1, 32),
-        new THREE.MeshToonMaterial({ color: '#ffec3d' })
+        new THREE.MeshToonMaterial({ color: '#ffec3d', opacity: 0.5 })
     );
     ufoRay.position.y = -0.25;
     ufoRay.scale.set(0, 0, 0);
@@ -191,9 +229,8 @@ function createUfo() {
 
     ufo.position.setFromSphericalCoords(11, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
-    // ufo.lookAt(getVectorFromSphCoord(11, Math.PI / 2, 0));
     ufo.layers.set(LAYER_DEFAULT);
-    // scene.add(ufo);
+    scene.add(ufo);
 }
 
 function initSpecimenPoints() {
@@ -206,8 +243,13 @@ function addSpecimenPoint(phi, theta) {
     specimenGroup.add(createPoint(phi, theta, 0x73d13d));
 }
 
-function addMediaPoint(phi, theta) {
-    mediaGroup.add(createPoint(phi, theta, 0xff4d4f));
+function addMedia(phi, theta) {
+    var media = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 16, 16),
+        new THREE.MeshBasicMaterial({ color: '#ff4d4f' })
+    );
+    media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
+    mediaGroup.add(media);
 }
 
 function createPoint(phi, theta, color) {
@@ -219,10 +261,21 @@ function createPoint(phi, theta, color) {
     return point;
 }
 
+function addPointToTrack() {
+    var point = new THREE.Object3D();
+    point.position.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
+    pivot.worldToLocal(point.position);
+    track.add(point);
+    if (track.children.length > MAX_TRACK_POINTS) {
+        track.remove(track.children[0]);
+    }
+}
+
 function calcMinSpecimenAngle() {
-    return specimenGroup.children.reduce(function (a, b) {
-        const angle = ufo.position.angleTo(b.localToWorld(new THREE.Vector3()))
-        return Math.min(a, angle);
+    return specimenGroup.children.reduce(function (min, item) {
+        const angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
+        item.userData.angle = angle;
+        return Math.min(min, angle);
     }, Infinity);
 }
 
@@ -259,6 +312,13 @@ function createLand() {
     geo.verticesNeedUpdate = true;
 }
 
+function getNearestSpecimen() {
+    return specimenGroup.children.reduce(function (a, b) {
+        if (!a || b.userData.angle < a.userData.angle) return b;
+        return a;
+    }, null);
+}
+
 function createClouds() {
     // clouds = new THREE.Group();
     // pivot.add(clouds);
@@ -268,6 +328,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // composer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function initControl() {
@@ -282,21 +343,7 @@ function initControl() {
 function animate() {
     requestAnimationFrame(animate);
 
-    calcMinSpecimenAngle();
-
-    // TODO: inertia
-    if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
-        pivot.rotateOnWorldAxis(baseAxisX, ROTATION_VEL);
-    }
-    if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
-        pivot.rotateOnWorldAxis(baseAxisX, -ROTATION_VEL);
-    }
-    if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
-        pivot.rotateOnWorldAxis(baseAxisY, ROTATION_VEL);
-    }
-    if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
-        pivot.rotateOnWorldAxis(baseAxisY, -ROTATION_VEL);
-    }
+    updateMovement();
 
     if (keys[32]) { // Space
         // TODO: refactor
@@ -314,10 +361,21 @@ function animate() {
     var delta = Date.now() - lastFrame;
     updateEarth(delta);
     updateClouds(delta);
+    updateUfoIndicator();
+
+    updatePathLength();
+    updateTrack();
+    updateMedium();
 
     lastFrame = Date.now();
 
+    // renderer.autoClear = false;
     renderer.clear();
+
+    // camera.layers.set(LAYER_BLOOM);
+    // composer.render();
+    // renderer.clearDepth();
+
     camera.layers.set(LAYER_EARTH);
     renderer.render(scene, camera);
     camera.layers.set(LAYER_DEFAULT);
@@ -345,6 +403,67 @@ function updateClouds(delta) {
     //     var scale = Math.sin(cloudsSurface[i].delta) * 0.06;
     //     clouds.children[i].scale.setScalar(1 + scale);
     // }
+}
+
+function updateMovement() {
+    if (keys[32]) return;
+    // TODO: inertia
+    if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
+        pivot.rotateOnWorldAxis(baseAxisX, ROTATION_VEL);
+    }
+    if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
+        pivot.rotateOnWorldAxis(baseAxisX, -ROTATION_VEL);
+    }
+    if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
+        pivot.rotateOnWorldAxis(baseAxisY, ROTATION_VEL);
+    }
+    if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
+        pivot.rotateOnWorldAxis(baseAxisY, -ROTATION_VEL);
+    }
+}
+
+function updateUfoIndicator() {
+    var minSpecimenAngle = calcMinSpecimenAngle();
+    if (minSpecimenAngle <= 0.5) {
+        ufoIndicator.material.color = new THREE.Color('#b7eb8f');
+    } else {
+        ufoIndicator.material.color = new THREE.Color('#8c8c8c');
+    }
+}
+
+function updatePathLength() {
+    var vec = new THREE.Vector3();
+    vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
+    var position = pivot.worldToLocal(vec);
+    if (lastPosition) {
+        pathLength += position.distanceTo(lastPosition);
+    }
+    lastPosition = position;
+}
+
+function updateTrack() {
+    var now = Date.now();
+    if (now - trackTime >= 3e3) {
+        trackTime = now;
+        addPointToTrack();
+    }
+}
+
+function updateMedium() {
+    if (track.children.length > MAX_MEDIUM) return;
+    var key = Math.ceil(pathLength / 15);
+    if (!trackMediaMap[key]) {
+        var point = track.children[0];
+        if (point) {
+            var sph = new THREE.Spherical(RADIUS_EARTH);
+            sph.setFromVector3(point.position);
+            sph.phi += THREE.MathUtils.randFloatSpread(0.3);
+            sph.theta += THREE.MathUtils.randFloatSpread(0.3);
+            addMedia(sph.phi, sph.theta);
+            track.remove(point);
+        }
+    }
+    trackMediaMap[key] = true;
 }
 
 function initDebug() {
@@ -391,11 +510,11 @@ function initDebug() {
         });
     gui.addColor(guiConfigs, 'Sky A')
         .onChange(function (val) {
-            lights.fillTop.color.set(val);
+            lights.fillTopEarth.color.set(val);
         });
     gui.addColor(guiConfigs, 'Sky B')
         .onChange(function (val) {
-            lights.fillBottom.color.set(val);
+            lights.fillBottomEarth.color.set(val);
         });
     gui.addColor(guiConfigs, 'Ocean')
         .onChange(function (val) {
@@ -446,8 +565,8 @@ function initDebug() {
 
         lights.ambient.color.set(colors.ambient);
         lights.key.color.set(colors.key);
-        lights.fillTop.color.set(colors.skyA);
-        lights.fillBottom.color.set(colors.skyB);
+        lights.fillTopEarth.color.set(colors.skyA);
+        lights.fillBottomEarth.color.set(colors.skyB);
 
         document.body.setAttribute(
             'style',
