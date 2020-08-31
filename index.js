@@ -3,7 +3,8 @@ var _IS_DEBUG_ = true;
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
 var SPECIMENS_AMOUNT = 10;
-var ROTATION_VEL = Math.PI / 600;
+var ANGULAR_VEL = Math.PI / 600;
+var ANGULAR_ACC = ANGULAR_VEL / 30;
 var UFO_PHI = Math.PI * 0.42;
 var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
@@ -39,6 +40,7 @@ var track = new THREE.Group();
 var pathLength = 0;
 var lastPosition;
 var trackMediaMap = {};
+var angularVel = { phi: 0, theta: 0 };
 
 var lastFrame = Date.now();
 var trackTime = Date.now();
@@ -343,6 +345,7 @@ function initControl() {
 function animate() {
     requestAnimationFrame(animate);
 
+    updateVelocity();
     updateMovement();
 
     if (keys[32]) { // Space
@@ -405,21 +408,45 @@ function updateClouds(delta) {
     // }
 }
 
-function updateMovement() {
-    if (keys[32]) return;
-    // TODO: inertia
+function updateVelocity() {
+    // if (keys[32]) return;
+
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
-        pivot.rotateOnWorldAxis(baseAxisX, ROTATION_VEL);
+        if (angularVel.phi < ANGULAR_VEL) {
+            angularVel.phi = Math.min(angularVel.phi + ANGULAR_ACC, ANGULAR_VEL);
+        }
+    } else if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
+        if (angularVel.phi > -ANGULAR_VEL) {
+            angularVel.phi = Math.max(angularVel.phi - ANGULAR_ACC, -ANGULAR_VEL);
+        }
+    } else {
+        if (angularVel.phi > 0) {
+            angularVel.phi = Math.max(angularVel.phi - ANGULAR_ACC, 0);
+        } else if (angularVel.phi < 0) {
+            angularVel.phi = Math.min(angularVel.phi + ANGULAR_ACC, 0);
+        }
     }
-    if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
-        pivot.rotateOnWorldAxis(baseAxisX, -ROTATION_VEL);
-    }
+
     if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
-        pivot.rotateOnWorldAxis(baseAxisY, ROTATION_VEL);
+        if (angularVel.theta < ANGULAR_VEL) {
+            angularVel.theta = Math.min(angularVel.theta + ANGULAR_ACC, ANGULAR_VEL);
+        }
+    } else if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
+        if (angularVel.theta > -ANGULAR_VEL) {
+            angularVel.theta = Math.max(angularVel.theta - ANGULAR_ACC, -ANGULAR_VEL);
+        }
+    } else {
+        if (angularVel.theta > 0) {
+            angularVel.theta = Math.max(angularVel.theta - ANGULAR_ACC, 0);
+        } else if (angularVel.theta < 0) {
+            angularVel.theta = Math.min(angularVel.theta + ANGULAR_ACC, 0);
+        }
     }
-    if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
-        pivot.rotateOnWorldAxis(baseAxisY, -ROTATION_VEL);
-    }
+}
+
+function updateMovement() {
+    angularVel.phi && pivot.rotateOnWorldAxis(baseAxisX, angularVel.phi);
+    angularVel.theta && pivot.rotateOnWorldAxis(baseAxisY, angularVel.theta);
 }
 
 function updateUfoIndicator() {
