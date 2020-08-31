@@ -42,6 +42,7 @@ var pathLength = 0;
 var lastPosition;
 var trackMediaMap = {};
 var angularVel = { phi: 0, theta: 0 };
+var ufoOriginRotation;
 var ufoIdleAction;
 
 var clock;
@@ -250,6 +251,8 @@ function createUfo() {
     ufo.rotation.x = 1;
     ufo.layers.set(LAYER_DEFAULT);
     scene.add(ufo);
+
+    ufoOriginRotation = ufo.rotation.clone();
 
     mixer = new THREE.AnimationMixer(ufo);
     var pos1 = ufo.position;
@@ -497,8 +500,17 @@ function updateMovement() {
 }
 
 function updateUfo() {
+    updateUfoRotation();
     updateUfoActions();
     updateUfoIndicator();
+}
+
+function updateUfoRotation() {
+    ufo.rotation.x = ufoOriginRotation.x - angularVel.phi * 30;
+    ufo.rotation.z = ufoOriginRotation.z + angularVel.theta * 30;
+
+    camera.position.y = -angularVel.phi * 50;
+    camera.position.x = angularVel.theta * 50;
 }
 
 function updateUfoActions() {
