@@ -143,7 +143,7 @@ function initLight() {
     lights.spot.shadow.mapSize.width = 1024;
     lights.spot.shadow.mapSize.height = 1024;
     lights.spot.layers.enableAll();
-    scene.add(lights.spot);
+    // scene.add(lights.spot);
 
     lights.fillTop = new THREE.DirectionalLight('#333', 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
@@ -336,8 +336,16 @@ function createLand() {
                 && (vertex.x * vertex.y - vertex.z > 14)
             || vertex.y * vertex.x + vertex.y * vertex.z > 50
                 && (vertex.y * vertex.x + vertex.y * vertex.z < 65)
-            || vertex.x * vertex.z - vertex.y > 50
-            || vertex.y * vertex.x - vertex.z < -20
+            || vertex.y * vertex.z * vertex.z - vertex.x * vertex.x < -300
+            || vertex.x * vertex.z - vertex.x * vertex.y > 60
+            || vertex.x - vertex.y + vertex.x * vertex.z > 55
+            || vertex.x - (vertex.y + 50) * (vertex.z - 20) > 1400
+                && vertex.y * vertex.x > 200
+            || vertex.x * vertex.y - vertex.x < -50
+            || (vertex.x - 50) * vertex.z - vertex.x * 3 < -500
+            || vertex.y * vertex.y - vertex.z * 30 - vertex.y * 50 + vertex.x * 20 < -490
+                && vertex.y > 6
+            || vertex.z < -8 && vertex.x > 2
         ) {
             geo.vertices[i].multiplyScalar(0.6);
         }
