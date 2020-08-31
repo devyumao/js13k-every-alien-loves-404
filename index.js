@@ -1,4 +1,4 @@
-var _IS_DEBUG_ = true;
+(function () {
 
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
@@ -601,3 +601,5 @@ function getVectorFromSphCoord(radius, phi, theta) {
 function randRad() {
     return THREE.MathUtils.randFloatSpread(2 * Math.PI);
 }
+
+})();
