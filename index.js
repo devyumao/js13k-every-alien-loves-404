@@ -626,8 +626,8 @@ function onWindowResize() {
     cameraRTT.bottom = height / - 2;
     cameraRTT.updateProjectionMatrix();
 
-    rtMesh.scale.x *= width / oldWidth;
-    rtMesh.scale.y *= height / oldHeight;
+    rtMesh.scale.x *= W / oldWidth;
+    rtMesh.scale.y *= H / oldHeight;
     rtTexture.width = width;
     rtTexture.height = height;
 
@@ -948,7 +948,7 @@ function initDebug() {
             setTime(isNight);
         });
 
-    gui.hide();
+    // gui.hide();
 
     stats = new Stats();
     stats.showPanel(0);
