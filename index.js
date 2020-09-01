@@ -2,6 +2,7 @@
 
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
+var RADIUS_OCEAN = 9.9;
 var RADIUS_UFO_POS = 11;
 var SPECIMENS_AMOUNT = 10;
 var ANGULAR_VEL = Math.PI / 600;
@@ -31,6 +32,7 @@ var pivot = new THREE.Group();
 var earth, earthSurface;
 var clouds, cloudsSurface;
 var land, landSurface;
+var comet;
 var ufo = new THREE.Group();
 var ufoRay;
 var ufoIndicator;
@@ -88,6 +90,8 @@ function main() {
         createUfo();
         createClouds();
         createLand();
+        createSky();
+        createComet();
 
         pivot.add(specimenGroup, mediaGroup, track);
         scene.add(pivot);
@@ -197,7 +201,7 @@ function initEffects() {
 }
 
 function createEarth() {
-    var geo = new THREE.IcosahedronGeometry(RADIUS_EARTH, 3);
+    var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 3);
     earthSurface = [];
     for (var i = 0; i < geo.vertices.length; ++i) {
         earthSurface.push({
@@ -410,6 +414,86 @@ function createLand() {
     geo.verticesNeedUpdate = true;
 }
 
+function createSky() {
+    var sky = new THREE.Group();
+    pivot.add(sky);
+
+    var R = 100;
+    var r = 2;
+    for (var i = 0; i < 1000; ++i) {
+        var mat = new THREE.MeshBasicMaterial({
+            color: '#555',
+            opacity: Math.random()
+        });
+        var geo = new THREE.TetrahedronGeometry(Math.random(), 0);
+        var mesh = new THREE.Mesh(geo, mat);
+
+        var sph = new THREE.Spherical(R);
+        sph.phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        sph.theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        mesh.position.setFromSphericalCoords(R, sph.phi, sph.theta);
+
+        mesh.rotation.set(
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2
+        );
+
+        mesh.scale.setScalar(THREE.MathUtils.randFloatSpread(r));
+
+        sky.add(mesh);
+    }
+}
+
+function createComet() {
+    // console.log('create');
+    // var R = 30;
+    // var x = Math.random() * 10 + 0.01; // in case dividing by 0
+    // var y = 10;
+    // var z = R;
+    // var angle = -Math.atan(x / y);
+
+    // if (!comet) {
+    //     var group = new THREE.Group();
+    //     var cnt = 10;
+    //     for (var i = 0; i < cnt; ++i) {
+    //         var mat = new THREE.MeshBasicMaterial({
+    //             color: '#cc6',
+    //             opacity: 1 - i / 8,
+    //             transparent: true
+    //         });
+    //         var geo = new THREE.TetrahedronGeometry(1, 0);
+    //         var mesh = new THREE.Mesh(geo, mat);
+    //         group.add(mesh);
+
+    //         mesh.rotation.z = angle;
+    //         mesh.position.x = i * x * 0.1;
+    //         mesh.position.y = -i * y * 0.1;
+    //         mesh.scale.setScalar(1 - i / cnt);
+    //     }
+
+    //     group.position.set(x, y, z);
+    //     group.scale.setScalar(Math.random() * 2 + 4);
+    //     pivot.add(group);
+
+    //     comet = {
+    //         mesh: group,
+    //         offscreenDistance: R * 2,
+    //         x: x,
+    //         y: y,
+    //         z: z
+    //     };
+    // }
+
+    // var d = Math.sqrt(comet.x * comet.x + comet.y * comet.y);
+    // var rand = THREE.MathUtils.randFloatSpread(1 / d);
+    // comet.vx = -rand * comet.x;
+    // comet.vy = rand * comet.y;
+    // comet.vz = 0;
+    // comet.delay = 0//25000 * Math.random() + 5000; // 5~30 seconds
+    // comet.birth = Date.now();
+}
+
 function getNearestSpecimen() {
     return specimenGroup.children.reduce(function (a, b) {
         if (!a || b.userData.angle < a.userData.angle) return b;
@@ -468,6 +552,8 @@ function animate() {
     updateTrack();
     updateMedium();
 
+    updateComet();
+
     mixer.update(delta);
 
     // renderer.autoClear = false;
@@ -494,7 +580,7 @@ function updateEarth(delta) {
     for (var i = 0; i < vertices.length; ++i) {
         var s = earthSurface[i];
         s.delta += delta * 0.002;
-        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_EARTH - 0.1);
+        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_OCEAN - 0.1);
         vertices[i].set(
             s.x + scale,
             s.y + scale,
@@ -613,6 +699,22 @@ function updateMedium() {
         }
     }
     trackMediaMap[key] = true;
+}
+
+function updateComet() {
+    // if (Date.now() > comet.birth + comet.delay) {
+    //     console.log('fly');
+    //     // flying
+    //     comet.mesh.position.x += comet.vx;
+    //     comet.mesh.position.y += comet.vy;
+    //     comet.mesh.position.z += comet.vz;
+
+    //     if (Math.abs(comet.mesh.position.x) > comet.offscreenDistance
+    //         || Math.abs(comet.mesh.position.y) > comet.offscreenDistance
+    //     ) {
+    //         createComet();
+    //     }
+    // }
 }
 
 // DEBUG
