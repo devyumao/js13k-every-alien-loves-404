@@ -19,12 +19,12 @@ var MAX_MEDIUM = 8;
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
 
-var resources = {
-    earthTexture: null
-};
+// var resources = {
+//     earthTexture: null
+// };
 
-var renderer, scene, camera, mixer, lights, colors;
-var composer;
+var renderer, scene, camera, lights, colors;
+// var composer;
 
 var keys = [];
 
@@ -39,13 +39,15 @@ var ufoIndicator;
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
+var ufoMixer, ufoIndicatorMixer;
+var ufoIdleAction, ufoIndicatorAction;
+
 var track = new THREE.Group();
 var pathLength = 0;
 var lastPosition;
 var trackMediaMap = {};
 var angularVel = { phi: 0, theta: 0 };
 var ufoOriginRotation;
-var ufoIdleAction;
 
 var clock;
 var trackTime = Date.now();
@@ -187,18 +189,18 @@ function initRenderer() {
     document.body.appendChild(renderer.domElement);
 }
 
-function initEffects() {
-    var renderScene = new THREE.RenderPass(scene, camera);
-    var bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-    bloomPass.threshold = 0.21;
-    bloomPass.strength = 1.2;
-    bloomPass.radius = 0.55;
-    bloomPass.renderToScreen = true;
-    composer = new THREE.Effectcomposer(renderer);
-    composer.setSize(window.innerWidth, window.innerHeight);
-    composer.addPass(renderScene);
-    composer.addPass(bloomPass);
-}
+// function initEffects() {
+//     var renderScene = new THREE.RenderPass(scene, camera);
+//     var bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+//     bloomPass.threshold = 0.21;
+//     bloomPass.strength = 1.2;
+//     bloomPass.radius = 0.55;
+//     bloomPass.renderToScreen = true;
+//     composer = new THREE.Effectcomposer(renderer);
+//     composer.setSize(window.innerWidth, window.innerHeight);
+//     composer.addPass(renderScene);
+//     composer.addPass(bloomPass);
+// }
 
 function createEarth() {
     var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 3);
@@ -241,7 +243,7 @@ function createUfo() {
 
     ufoIndicator = new THREE.Mesh(
         new THREE.ConeGeometry(0.32, 0.16, 32),
-        new THREE.MeshToonMaterial({ color: '#8c8c8c' })
+        new THREE.MeshToonMaterial({ color: '#b7eb8f', transparent: true, opacity: 0 })
     );
     ufoIndicator.position.y = 0.047;
     // ufoIndicator.layers.enable(LAYER_BLOOM);
@@ -262,7 +264,12 @@ function createUfo() {
 
     ufoOriginRotation = ufo.rotation.clone();
 
-    mixer = new THREE.AnimationMixer(ufo);
+    initUfoMixer();
+    initUfoIndicatorMixer();
+}
+
+function initUfoMixer() {
+    ufoMixer = new THREE.AnimationMixer(ufo);
     var pos1 = ufo.position;
     var pos2 = getVectorFromSphCoord(RADIUS_UFO_POS + 0.35, UFO_PHI, UFO_THETA);
     var posTrack = new THREE.VectorKeyframeTrack(
@@ -272,9 +279,17 @@ function createUfo() {
         // THREE.InterpolateSmooth
     );
     var clip = new THREE.AnimationClip('UfoIdle', 0.8, [posTrack]);
-    ufoIdleAction = mixer.clipAction(clip);
+    ufoIdleAction = ufoMixer.clipAction(clip);
     ufoIdleAction.loop = THREE.LoopPingPong;
     ufoIdleAction.play();
+}
+
+function initUfoIndicatorMixer() {
+    ufoIndicatorMixer = new THREE.AnimationMixer(ufoIndicator);
+    var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 1]);
+    var clip = new THREE.AnimationClip('UfoIndicator', 1, [opacityTrack]);
+    ufoIndicatorAction = ufoIndicatorMixer.clipAction(clip);
+    ufoIndicatorAction.loop = THREE.LoopPingPong;
 }
 
 function initSpecimenPoints() {
@@ -555,6 +570,8 @@ function animate() {
     updateComet();
 
     mixer.update(delta);
+    ufoMixer.update(delta);
+    ufoIndicatorMixer.update(delta);
 
     // renderer.autoClear = false;
     renderer.clear();
@@ -649,8 +666,8 @@ function updateUfoRotation() {
     ufo.rotation.x = ufoOriginRotation.x - angularVel.phi * 30;
     ufo.rotation.z = ufoOriginRotation.z + angularVel.theta * 30;
 
-    camera.position.y = -angularVel.phi * 50;
-    camera.position.x = angularVel.theta * 50;
+    // camera.position.y = -angularVel.phi * 50;
+    // camera.position.x = angularVel.theta * 50;
 }
 
 function updateUfoActions() {
@@ -659,10 +676,12 @@ function updateUfoActions() {
 
 function updateUfoIndicator() {
     var minSpecimenAngle = calcMinSpecimenAngle();
+    const isRunning = ufoIndicatorAction.isRunning();
     if (minSpecimenAngle <= 0.5) {
-        ufoIndicator.material.color = new THREE.Color('#b7eb8f');
+        !isRunning && ufoIndicatorAction.play();
+        ufoIndicatorAction.timeScale = 0.55 / (0.05 + minSpecimenAngle);
     } else {
-        ufoIndicator.material.color = new THREE.Color('#8c8c8c');
+        isRunning && ufoIndicatorAction.stop();
     }
 }
 
