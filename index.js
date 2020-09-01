@@ -2,6 +2,7 @@
 
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
+var RADIUS_OCEAN = 9.9;
 var RADIUS_UFO_POS = 11;
 var SPECIMENS_AMOUNT = 10;
 var ANGULAR_VEL = Math.PI / 600;
@@ -31,6 +32,7 @@ var pivot = new THREE.Group();
 var earth, earthSurface;
 var clouds, cloudsSurface;
 var land, landSurface;
+var comet;
 var ufo = new THREE.Group();
 var ufoRay;
 var ufoIndicator;
@@ -51,13 +53,14 @@ var clock;
 var trackTime = Date.now();
 
 var colors = {
-    'Bg Top': '#252541',// '#912deb',
-    'Bg Bottom': '#384c7f',// '#59b5e8',
-    'Ambient': '#666666',
-    'Key': '#ddd',// '#ccc',
+    'Bg Top': '#0e1a25',// '#912deb',
+    'Bg Bottom': '#202731',// '#59b5e8',
+    'Ambient': '#ddd',
+    'Key': '#bbb',// '#ccc',
     'Sky A': '#297aa7',// '#2981a7',
     'Sky B': '#3434c0', //'#4629a7',
-    'Ocean': '#75e8e1',
+    'OceanLevels': ['#1eb5ca', '#21a6c5', '#1299b9', '#158eaa'],
+    'Land': '#63af67',
     'Change': function () {}
 };
 
@@ -72,7 +75,7 @@ main();
 function main() {
     document.body.setAttribute(
         'style',
-        'background:linear-gradient(0deg, '
+        'background:linear-gradient(90deg, '
             + colors['Bg Top'] + ' 0%, '
             + colors['Bg Bottom'] + ' 100%);'
     );
@@ -89,6 +92,8 @@ function main() {
         createUfo();
         createClouds();
         createLand();
+        createSky();
+        createComet();
 
         pivot.add(specimenGroup, mediaGroup, track);
         scene.add(pivot);
@@ -153,6 +158,7 @@ function initLight() {
     lights.key = new THREE.DirectionalLight(colors.key, 0.8);
     lights.key.position.set(0, 0.5, 1);
     lights.key.layers.enableAll();
+    lights.key.castShadow = true;
     scene.add(lights.key);
 
     lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, Math.PI / 12, 0.5, 2);
@@ -212,7 +218,7 @@ function initRenderer() {
 // }
 
 function createEarth() {
-    var geo = new THREE.IcosahedronGeometry(RADIUS_EARTH, 3);
+    var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 3);
     earthSurface = [];
     for (var i = 0; i < geo.vertices.length; ++i) {
         earthSurface.push({
@@ -224,13 +230,15 @@ function createEarth() {
     }
 
     var mat = new THREE.MeshPhongMaterial({
-        color: '#75e8e1',
+        color: colors.Ocean,
         flatShading: true,
+        vertexColors: true,
         // wireframe: true
     });
 
     earth = new THREE.Mesh(geo, mat);
     earth.layers.set(LAYER_EARTH);
+    earth.receiveShadow = true;
     pivot.add(earth);
 }
 
@@ -347,7 +355,7 @@ function calcMinSpecimenAngle() {
 
 function createLand() {
     var mat = new THREE.MeshPhongMaterial({
-        color: '#7ee48c',
+        color: colors.Land,
         flatShading: true,
         // wireframe: true
     });
@@ -355,12 +363,11 @@ function createLand() {
     var geo = new THREE.IcosahedronGeometry(RADIUS_LAND, 3);
     land = new THREE.Mesh(geo, mat);
     land.layers.set(LAYER_EARTH);
+    land.receiveShadow = true;
     pivot.add(land);
 
-    landSurface = [];
-    for (var i = 0; i < geo.vertices.length; ++i) {
-        landSurface.push(1);
-    }
+    var isVLeveled = {};
+    var vLevel = [];
     for (var i = 0; i < geo.vertices.length; ++i) {
         var vertex = geo.vertices[i];
         // Some random functions to calculate land and ocean
@@ -369,13 +376,152 @@ function createLand() {
                 && (vertex.x * vertex.y - vertex.z > 14)
             || vertex.y * vertex.x + vertex.y * vertex.z > 50
                 && (vertex.y * vertex.x + vertex.y * vertex.z < 65)
-            || vertex.x * vertex.z - vertex.y > 50
-            || vertex.y * vertex.x - vertex.z < -20
+            || vertex.y * vertex.z * vertex.z - vertex.x * vertex.x < -300
+            || vertex.x * vertex.z - vertex.x * vertex.y > 60
+            || vertex.x - vertex.y + vertex.x * vertex.z > 55
+            || vertex.x - (vertex.y + 50) * (vertex.z - 20) > 1400
+                && vertex.y * vertex.x > 200
+            || vertex.x * vertex.y - vertex.x < -50
+            || (vertex.x - 50) * vertex.z - vertex.x * 3 < -500
+            || vertex.y * vertex.y - vertex.z * 30 - vertex.y * 50 + vertex.x * 20 < -490
+                && vertex.y > 6
+            || vertex.z < -8 && vertex.x > 2
+            || vertex.y * vertex.y - vertex.z + vertex.x * 10 > 110
         ) {
+            // Ocean
             geo.vertices[i].multiplyScalar(0.6);
+            vLevel.push(0);
+        }
+        else {
+            // Land
+            vLevel.push(1);
         }
     }
+
+    landSurface = [];
+    for (var i = 0; i < geo.faces.length; ++i) {
+        var f = geo.faces[i];
+        if (vLevel[f.a] && vLevel[f.b] && vLevel[f.c]) {
+            // Land
+            landSurface.push(5);
+            isVLeveled[f.a] = 2;
+            isVLeveled[f.b] = 2;
+            isVLeveled[f.c] = 2;
+        }
+        else {
+            landSurface.push(-10);
+        }
+    }
+
+    for (var level = 1; level > -3; --level) {
+        for (var i = 0; i < geo.faces.length; ++i) {
+            var f = geo.faces[i];
+            var la = isVLeveled[f.a] > level;
+            var lb = isVLeveled[f.b] > level;
+            var lc = isVLeveled[f.c] > level;
+            if (!(la && lb && lc) && (la || lb || lc)) {
+                // One of the vertices is adjcent to current level
+                landSurface[i] = level;
+                isVLeveled[f.a] = isVLeveled[f.a] == null ? level : Math.max(level, isVLeveled[f.a]);
+                isVLeveled[f.b] = isVLeveled[f.b] == null ? level : Math.max(level, isVLeveled[f.b]);
+                isVLeveled[f.c] = isVLeveled[f.c] == null ? level : Math.max(level, isVLeveled[f.c]);
+            }
+            else if (isVLeveled[f.a] >= level && isVLeveled[f.b] >= level) {
+                landSurface[i] = Math.max(level, landSurface[i]);
+            }
+        }
+    }
+
+    landSurface.forEach(function (i, id) {
+        earth.geometry.faces[id].color = new THREE.Color(
+            i >= 1
+                ? colors.OceanLevels[0]
+                : colors.OceanLevels[-i + 1]
+        );
+    });
+
+    earth.geometry.colorsNeedUpdate = true;
     geo.verticesNeedUpdate = true;
+}
+
+function createSky() {
+    var sky = new THREE.Group();
+    pivot.add(sky);
+
+    var R = 100;
+    var r = 2;
+    for (var i = 0; i < 1000; ++i) {
+        var mat = new THREE.MeshBasicMaterial({
+            color: '#555',
+            opacity: Math.random()
+        });
+        var geo = new THREE.TetrahedronGeometry(Math.random(), 0);
+        var mesh = new THREE.Mesh(geo, mat);
+
+        var sph = new THREE.Spherical(R);
+        sph.phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        sph.theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        mesh.position.setFromSphericalCoords(R, sph.phi, sph.theta);
+
+        mesh.rotation.set(
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2
+        );
+
+        mesh.scale.setScalar(THREE.MathUtils.randFloatSpread(r));
+
+        sky.add(mesh);
+    }
+}
+
+function createComet() {
+    // console.log('create');
+    // var R = 30;
+    // var x = Math.random() * 10 + 0.01; // in case dividing by 0
+    // var y = 10;
+    // var z = R;
+    // var angle = -Math.atan(x / y);
+
+    // if (!comet) {
+    //     var group = new THREE.Group();
+    //     var cnt = 10;
+    //     for (var i = 0; i < cnt; ++i) {
+    //         var mat = new THREE.MeshBasicMaterial({
+    //             color: '#cc6',
+    //             opacity: 1 - i / 8,
+    //             transparent: true
+    //         });
+    //         var geo = new THREE.TetrahedronGeometry(1, 0);
+    //         var mesh = new THREE.Mesh(geo, mat);
+    //         group.add(mesh);
+
+    //         mesh.rotation.z = angle;
+    //         mesh.position.x = i * x * 0.1;
+    //         mesh.position.y = -i * y * 0.1;
+    //         mesh.scale.setScalar(1 - i / cnt);
+    //     }
+
+    //     group.position.set(x, y, z);
+    //     group.scale.setScalar(Math.random() * 2 + 4);
+    //     pivot.add(group);
+
+    //     comet = {
+    //         mesh: group,
+    //         offscreenDistance: R * 2,
+    //         x: x,
+    //         y: y,
+    //         z: z
+    //     };
+    // }
+
+    // var d = Math.sqrt(comet.x * comet.x + comet.y * comet.y);
+    // var rand = THREE.MathUtils.randFloatSpread(1 / d);
+    // comet.vx = -rand * comet.x;
+    // comet.vy = rand * comet.y;
+    // comet.vz = 0;
+    // comet.delay = 0//25000 * Math.random() + 5000; // 5~30 seconds
+    // comet.birth = Date.now();
 }
 
 function getNearestSpecimen() {
@@ -425,6 +571,8 @@ function animate() {
     updateTrack();
     updateMedium();
 
+    updateComet();
+
     cameraMixer.update(delta);
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
@@ -453,7 +601,7 @@ function updateEarth(delta) {
     for (var i = 0; i < vertices.length; ++i) {
         var s = earthSurface[i];
         s.delta += delta * 0.002;
-        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_EARTH - 0.1);
+        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_OCEAN - 0.1);
         vertices[i].set(
             s.x + scale,
             s.y + scale,
@@ -506,7 +654,7 @@ function updateVelocity() {
 function slowDownAngularVel(phiOrTheta) {
     if (angularVel[phiOrTheta] > 0) {
         angularVel[phiOrTheta] = Math.max(angularVel[phiOrTheta] - ANGULAR_ACC, 0);
-    } else if (angularVel.phi < 0) {
+    } else if (angularVel[phiOrTheta] < 0) {
         angularVel[phiOrTheta] = Math.min(angularVel[phiOrTheta] + ANGULAR_ACC, 0);
     }
 }
@@ -595,6 +743,22 @@ function updateMedium() {
     trackMediaMap[key] = true;
 }
 
+function updateComet() {
+    // if (Date.now() > comet.birth + comet.delay) {
+    //     console.log('fly');
+    //     // flying
+    //     comet.mesh.position.x += comet.vx;
+    //     comet.mesh.position.y += comet.vy;
+    //     comet.mesh.position.z += comet.vz;
+
+    //     if (Math.abs(comet.mesh.position.x) > comet.offscreenDistance
+    //         || Math.abs(comet.mesh.position.y) > comet.offscreenDistance
+    //     ) {
+    //         createComet();
+    //     }
+    // }
+}
+
 // DEBUG
 function initDebug() {
     gui = new dat.GUI();
@@ -602,11 +766,16 @@ function initDebug() {
     var isNight = false;
 
     guiConfigs = Object.assign({}, colors);
+    guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
+    guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
+    guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
+    guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
+
     gui.addColor(guiConfigs, 'Bg Top')
         .onChange(function (val) {
             document.body.setAttribute(
                 'style',
-                'background:linear-gradient(0deg, '
+                'background:linear-gradient(90deg, '
                     + val + ' 0%, '
                     + guiConfigs['Bg Bottom'] + ' 100%);'
             );
@@ -615,7 +784,7 @@ function initDebug() {
         .onChange(function (val) {
             document.body.setAttribute(
                 'style',
-                'background:linear-gradient(0deg, '
+                'background:linear-gradient(90deg, '
                     + guiConfigs['Bg Top'] + ' 0%, '
                     + val + ' 100%);'
             );
@@ -637,9 +806,27 @@ function initDebug() {
         .onChange(function (val) {
             lights.fillBottomEarth.color.set(val);
         });
-    gui.addColor(guiConfigs, 'Ocean')
+
+    [0, 1, 2, 3].forEach(function (x) {
+        gui.addColor(guiConfigs, 'Ocean' + x)
+            .onChange(function (val) {
+                colors.OceanLevels[x] = val;
+
+                landSurface.forEach(function (i, id) {
+                    earth.geometry.faces[id].color = new THREE.Color(
+                        i >= 1
+                            ? colors.OceanLevels[0]
+                            : colors.OceanLevels[-i + 1]
+                    );
+                });
+                earth.geometry.colorsNeedUpdate = true;
+                earth.geometry.elementsNeedUpdate = true;
+            });
+    });
+
+    gui.addColor(guiConfigs, 'Land')
         .onChange(function (val) {
-            earth.material.color.set(val);
+            land.material.color.set(val);
         });
 
     gui.add(guiConfigs, 'Change')
