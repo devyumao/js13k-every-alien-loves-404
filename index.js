@@ -23,7 +23,10 @@ var baseAxisY = new THREE.Vector3(0, 1, 0);
 //     earthTexture: null
 // };
 
-var renderer, scene, camera, lights, colors;
+var renderer, scene, sceneRTT, camera, cameraRTT, lights, colors;
+var rtTexture, rtMesh;
+var rttDprRatio = 4;
+window.rttOn = true;
 // var composer;
 
 var keys = [];
@@ -59,8 +62,8 @@ var colors = {
     'Key': '#bbb',// '#ccc',
     'Sky A': '#297aa7',// '#2981a7',
     'Sky B': '#3434c0', //'#4629a7',
-    'OceanLevels': ['#1eb5ca', '#21a6c5', '#1299b9', '#158eaa'],
-    'Land': '#63af67',
+    'OceanLevels': ['#31d9d9', '#32c5d9', '#44a9c8', '#2694b9'],
+    'Land': '#9be889',
     'Change': function () {}
 };
 
@@ -73,13 +76,6 @@ var stats;
 main();
 
 function main() {
-    document.body.setAttribute(
-        'style',
-        'background:linear-gradient(90deg, '
-            + colors['Bg Top'] + ' 0%, '
-            + colors['Bg Bottom'] + ' 100%);'
-    );
-
     loadResources().then(() => {
         // DEBUG
         initDebug();
@@ -126,6 +122,7 @@ function loadResources() {
 
 function initScene() {
     scene = new THREE.Scene();
+    sceneRTT = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 20;
@@ -133,6 +130,54 @@ function initScene() {
 
     cameraMixer = new THREE.AnimationMixer(camera);
     initCameraZoomAction();
+
+    var bg = new THREE.PlaneBufferGeometry(500, 200);
+    var bgMat = new THREE.ShaderMaterial({
+        uniforms: {
+            t: {
+                value: new THREE.Color(colors['Bg Top'])
+            },
+            b: {
+                value: new THREE.Color(colors['Bg Bottom'])
+            }
+        },
+        vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec(position,1.0);}',
+        fragmentShader: 'uniform vec3 t;uniform vec3 b;varying vec2 vUv;void main(){gl_FragColor = vec4(mix(t,b,vUv.y),1.0);}'
+    });
+    var bgMesh = new THREE.Mesh(bg, bgMat);
+    bgMesh.position.z = -100;
+    scene.add(bgMesh);
+
+
+    var width = window.innerWidth / rttDprRatio;
+    var height = window.innerHeight / rttDprRatio;
+    cameraRTT = new THREE.OrthographicCamera(
+        width / - 2,
+        width / 2,
+        height / 2,
+        height / - 2,
+        -10000,
+        10000
+    );
+    cameraRTT.position.z = 100;
+
+    rtTexture = new THREE.WebGLRenderTarget(
+        width,
+        height,
+        {
+            minFilter: THREE.NearestFilter,
+            magFilter: THREE.NearestFilter,
+            format: THREE.RGBFormat
+        }
+    );
+
+    var plane = new THREE.PlaneBufferGeometry(width, height);
+    var mat = new THREE.MeshBasicMaterial({
+        map: rtTexture.texture
+    });
+    rtMesh = new THREE.Mesh(plane, mat);
+    rtMesh.position.z = -100;
+    sceneRTT.add(rtMesh);
 }
 
 function initCameraZoomAction() {
@@ -230,7 +275,7 @@ function createEarth() {
     }
 
     var mat = new THREE.MeshPhongMaterial({
-        color: colors.Ocean,
+        color: colors.OceanLevels[0],
         flatShading: true,
         vertexColors: true,
         // wireframe: true
@@ -357,6 +402,7 @@ function createLand() {
     var mat = new THREE.MeshPhongMaterial({
         color: colors.Land,
         flatShading: true,
+        shininess: 0
         // wireframe: true
     });
 
@@ -448,20 +494,22 @@ function createSky() {
     var sky = new THREE.Group();
     pivot.add(sky);
 
-    var R = 100;
-    var r = 2;
-    for (var i = 0; i < 1000; ++i) {
+    var R = 80;
+    var r = 2.5;
+    for (var i = 0; i < 2000; ++i) {
         var mat = new THREE.MeshBasicMaterial({
-            color: '#555',
-            opacity: Math.random()
+            color: '#999',
+            opacity: Math.random(),
+            transparent: true
         });
         var geo = new THREE.TetrahedronGeometry(Math.random(), 0);
         var mesh = new THREE.Mesh(geo, mat);
 
-        var sph = new THREE.Spherical(R);
+        var radius = R * (Math.random() * 2 + 1);
+        var sph = new THREE.Spherical(radius);
         sph.phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
         sph.theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
-        mesh.position.setFromSphericalCoords(R, sph.phi, sph.theta);
+        mesh.position.setFromSphericalCoords(radius, sph.phi, sph.theta);
 
         mesh.rotation.set(
             Math.random() * Math.PI * 2,
@@ -537,8 +585,25 @@ function createClouds() {
 }
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    var width = window.innerWidth / rttDprRatio;
+    var height = window.innerHeight / rttDprRatio;
+    var oldWidth = cameraRTT.right * 2;
+    var oldHeight = cameraRTT.top * 2;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
+
+    cameraRTT.left = width / - 2;
+    cameraRTT.right = width / 2;
+    cameraRTT.top = height / 2;
+    cameraRTT.bottom = height / - 2;
+    cameraRTT.updateProjectionMatrix();
+
+    rtMesh.scale.x *= width / oldWidth;
+    rtMesh.scale.y *= height / oldHeight;
+    rtTexture.width = width;
+    rtTexture.height = height;
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     // composer.setSize(window.innerWidth, window.innerHeight);
 }
@@ -577,8 +642,10 @@ function animate() {
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
 
-    // renderer.autoClear = false;
-    renderer.clear();
+    if (window.rttOn) {
+        renderer.setRenderTarget(rtTexture);
+        renderer.clear();
+    }
 
     // camera.layers.set(LAYER_BLOOM);
     // composer.render();
@@ -588,6 +655,12 @@ function animate() {
     renderer.render(scene, camera);
     camera.layers.set(LAYER_DEFAULT);
     renderer.render(scene, camera);
+
+    if (window.rttOn) {
+        renderer.setRenderTarget(null);
+        renderer.clear();
+        renderer.render(sceneRTT, cameraRTT);
+    }
 
     // DEBUG
 	stats.end();
@@ -600,8 +673,8 @@ function updateEarth(delta) {
     var vertices = earth.geometry.vertices;
     for (var i = 0; i < vertices.length; ++i) {
         var s = earthSurface[i];
-        s.delta += delta * 0.002;
-        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_OCEAN - 0.1);
+        s.delta += delta * 0.003;
+        var scale = Math.min(Math.sin(s.delta) * 0.1, RADIUS_LAND - RADIUS_OCEAN - 0.1);
         vertices[i].set(
             s.x + scale,
             s.y + scale,
