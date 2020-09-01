@@ -49,13 +49,14 @@ var clock;
 var trackTime = Date.now();
 
 var colors = {
-    'Bg Top': '#252541',// '#912deb',
-    'Bg Bottom': '#384c7f',// '#59b5e8',
-    'Ambient': '#666666',
-    'Key': '#ddd',// '#ccc',
+    'Bg Top': '#0e1a25',// '#912deb',
+    'Bg Bottom': '#202731',// '#59b5e8',
+    'Ambient': '#ddd',
+    'Key': '#bbb',// '#ccc',
     'Sky A': '#297aa7',// '#2981a7',
     'Sky B': '#3434c0', //'#4629a7',
-    'Ocean': '#75e8e1',
+    'OceanLevels': ['#1eb5ca', '#21a6c5', '#1299b9', '#158eaa'],
+    'Land': '#63af67',
     'Change': function () {}
 };
 
@@ -70,7 +71,7 @@ main();
 function main() {
     document.body.setAttribute(
         'style',
-        'background:linear-gradient(0deg, '
+        'background:linear-gradient(90deg, '
             + colors['Bg Top'] + ' 0%, '
             + colors['Bg Bottom'] + ' 100%);'
     );
@@ -136,6 +137,7 @@ function initLight() {
     lights.key = new THREE.DirectionalLight(colors.key, 0.8);
     lights.key.position.set(0, 0.5, 1);
     lights.key.layers.enableAll();
+    lights.key.castShadow = true;
     scene.add(lights.key);
 
     lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, Math.PI / 12, 0.5, 2);
@@ -207,13 +209,15 @@ function createEarth() {
     }
 
     var mat = new THREE.MeshPhongMaterial({
-        color: '#75e8e1',
+        color: colors.Ocean,
         flatShading: true,
+        vertexColors: true,
         // wireframe: true
     });
 
     earth = new THREE.Mesh(geo, mat);
     earth.layers.set(LAYER_EARTH);
+    earth.receiveShadow = true;
     pivot.add(earth);
 }
 
@@ -317,7 +321,7 @@ function calcMinSpecimenAngle() {
 
 function createLand() {
     var mat = new THREE.MeshPhongMaterial({
-        color: '#7ee48c',
+        color: colors.Land,
         flatShading: true,
         // wireframe: true
     });
@@ -325,12 +329,11 @@ function createLand() {
     var geo = new THREE.IcosahedronGeometry(RADIUS_LAND, 3);
     land = new THREE.Mesh(geo, mat);
     land.layers.set(LAYER_EARTH);
+    land.receiveShadow = true;
     pivot.add(land);
 
-    landSurface = [];
-    for (var i = 0; i < geo.vertices.length; ++i) {
-        landSurface.push(1);
-    }
+    var isVLeveled = {};
+    var vLevel = [];
     for (var i = 0; i < geo.vertices.length; ++i) {
         var vertex = geo.vertices[i];
         // Some random functions to calculate land and ocean
@@ -349,10 +352,61 @@ function createLand() {
             || vertex.y * vertex.y - vertex.z * 30 - vertex.y * 50 + vertex.x * 20 < -490
                 && vertex.y > 6
             || vertex.z < -8 && vertex.x > 2
+            || vertex.y * vertex.y - vertex.z + vertex.x * 10 > 110
         ) {
+            // Ocean
             geo.vertices[i].multiplyScalar(0.6);
+            vLevel.push(0);
+        }
+        else {
+            // Land
+            vLevel.push(1);
         }
     }
+
+    landSurface = [];
+    for (var i = 0; i < geo.faces.length; ++i) {
+        var f = geo.faces[i];
+        if (vLevel[f.a] && vLevel[f.b] && vLevel[f.c]) {
+            // Land
+            landSurface.push(5);
+            isVLeveled[f.a] = 2;
+            isVLeveled[f.b] = 2;
+            isVLeveled[f.c] = 2;
+        }
+        else {
+            landSurface.push(-10);
+        }
+    }
+
+    for (var level = 1; level > -3; --level) {
+        for (var i = 0; i < geo.faces.length; ++i) {
+            var f = geo.faces[i];
+            var la = isVLeveled[f.a] > level;
+            var lb = isVLeveled[f.b] > level;
+            var lc = isVLeveled[f.c] > level;
+            if (!(la && lb && lc) && (la || lb || lc)) {
+                // One of the vertices is adjcent to current level
+                landSurface[i] = level;
+                isVLeveled[f.a] = isVLeveled[f.a] == null ? level : Math.max(level, isVLeveled[f.a]);
+                isVLeveled[f.b] = isVLeveled[f.b] == null ? level : Math.max(level, isVLeveled[f.b]);
+                isVLeveled[f.c] = isVLeveled[f.c] == null ? level : Math.max(level, isVLeveled[f.c]);
+            }
+            else if (isVLeveled[f.a] >= level && isVLeveled[f.b] >= level) {
+                landSurface[i] = Math.max(level, landSurface[i]);
+            }
+        }
+    }
+
+    landSurface.forEach(function (i, id) {
+        earth.geometry.faces[id].color = new THREE.Color(
+            i >= 1
+                ? colors.OceanLevels[0]
+                : colors.OceanLevels[-i + 1]
+        );
+    });
+
+    earth.geometry.colorsNeedUpdate = true;
     geo.verticesNeedUpdate = true;
 }
 
@@ -568,11 +622,16 @@ function initDebug() {
     var isNight = false;
 
     guiConfigs = Object.assign({}, colors);
+    guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
+    guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
+    guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
+    guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
+
     gui.addColor(guiConfigs, 'Bg Top')
         .onChange(function (val) {
             document.body.setAttribute(
                 'style',
-                'background:linear-gradient(0deg, '
+                'background:linear-gradient(90deg, '
                     + val + ' 0%, '
                     + guiConfigs['Bg Bottom'] + ' 100%);'
             );
@@ -581,7 +640,7 @@ function initDebug() {
         .onChange(function (val) {
             document.body.setAttribute(
                 'style',
-                'background:linear-gradient(0deg, '
+                'background:linear-gradient(90deg, '
                     + guiConfigs['Bg Top'] + ' 0%, '
                     + val + ' 100%);'
             );
@@ -603,9 +662,27 @@ function initDebug() {
         .onChange(function (val) {
             lights.fillBottomEarth.color.set(val);
         });
-    gui.addColor(guiConfigs, 'Ocean')
+
+    [0, 1, 2, 3].forEach(function (x) {
+        gui.addColor(guiConfigs, 'Ocean' + x)
+            .onChange(function (val) {
+                colors.OceanLevels[x] = val;
+
+                landSurface.forEach(function (i, id) {
+                    earth.geometry.faces[id].color = new THREE.Color(
+                        i >= 1
+                            ? colors.OceanLevels[0]
+                            : colors.OceanLevels[-i + 1]
+                    );
+                });
+                earth.geometry.colorsNeedUpdate = true;
+                earth.geometry.elementsNeedUpdate = true;
+            });
+    });
+
+    gui.addColor(guiConfigs, 'Land')
         .onChange(function (val) {
-            earth.material.color.set(val);
+            land.material.color.set(val);
         });
 
     gui.add(guiConfigs, 'Change')
