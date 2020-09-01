@@ -37,8 +37,8 @@ var ufoIndicator;
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
-var ufoMixer, ufoIndicatorMixer;
-var ufoIdleAction, ufoIndicatorAction;
+var cameraMixer, ufoMixer, ufoIndicatorMixer;
+var cameraZoomAction, ufoIdleAction, ufoIndicatorAction;
 
 var track = new THREE.Group();
 var pathLength = 0;
@@ -125,6 +125,21 @@ function initScene() {
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 20;
     camera.layers.enable(LAYER_EARTH);
+
+    cameraMixer = new THREE.AnimationMixer(camera);
+    initCameraZoomAction();
+}
+
+function initCameraZoomAction() {
+    var pos = camera.position;
+    var posTrack = new THREE.VectorKeyframeTrack(
+        '.position',
+        [0, 1],
+        [pos.x, pos.y, pos.z, pos.x, pos.y, 15]
+    );
+    var clip = new THREE.AnimationClip('CameraZoom', 1, [posTrack]);
+    cameraZoomAction = cameraMixer.clipAction(clip);
+    cameraZoomAction.loop = THREE.LoopOnce;
 }
 
 function initLight() {
@@ -399,18 +414,7 @@ function animate() {
     updateVelocity();
     updateMovement();
 
-    if (keys[32]) { // Space
-        // TODO: refactor
-        if (ufoRay.scale.x < 1) {
-            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.90);
-            ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
-        }
-    } else {
-        if (ufoRay.scale.x > 0) {
-            var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
-            ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
-        }
-    }
+    updateRay();
 
     var delta = clock.getDelta();
     updateEarth(delta * 1e3);
@@ -421,6 +425,7 @@ function animate() {
     updateTrack();
     updateMedium();
 
+    cameraMixer.update(delta);
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
 
@@ -467,7 +472,11 @@ function updateClouds(delta) {
 }
 
 function updateVelocity() {
-    // if (keys[32]) return;
+    if (keys[32]) {
+        slowDownAngularVel('phi');
+        slowDownAngularVel('theta');
+        return;
+    }
 
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
         if (angularVel.phi < ANGULAR_VEL) {
@@ -478,11 +487,7 @@ function updateVelocity() {
             angularVel.phi = Math.max(angularVel.phi - ANGULAR_ACC, -ANGULAR_VEL);
         }
     } else {
-        if (angularVel.phi > 0) {
-            angularVel.phi = Math.max(angularVel.phi - ANGULAR_ACC, 0);
-        } else if (angularVel.phi < 0) {
-            angularVel.phi = Math.min(angularVel.phi + ANGULAR_ACC, 0);
-        }
+        slowDownAngularVel('phi');
     }
 
     if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
@@ -494,17 +499,36 @@ function updateVelocity() {
             angularVel.theta = Math.max(angularVel.theta - ANGULAR_ACC, -ANGULAR_VEL);
         }
     } else {
-        if (angularVel.theta > 0) {
-            angularVel.theta = Math.max(angularVel.theta - ANGULAR_ACC, 0);
-        } else if (angularVel.theta < 0) {
-            angularVel.theta = Math.min(angularVel.theta + ANGULAR_ACC, 0);
-        }
+        slowDownAngularVel('theta');
+    }
+}
+
+function slowDownAngularVel(phiOrTheta) {
+    if (angularVel[phiOrTheta] > 0) {
+        angularVel[phiOrTheta] = Math.max(angularVel[phiOrTheta] - ANGULAR_ACC, 0);
+    } else if (angularVel.phi < 0) {
+        angularVel[phiOrTheta] = Math.min(angularVel[phiOrTheta] + ANGULAR_ACC, 0);
     }
 }
 
 function updateMovement() {
     angularVel.phi && pivot.rotateOnWorldAxis(baseAxisX, angularVel.phi);
     angularVel.theta && pivot.rotateOnWorldAxis(baseAxisY, angularVel.theta);
+}
+
+function updateRay() {
+    if (keys[32]) { // Space
+        // TODO: refactor
+        if (ufoRay.scale.x < 1) {
+            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.90);
+            ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
+        }
+    } else {
+        if (ufoRay.scale.x > 0) {
+            var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
+            ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
+        }
+    }
 }
 
 function updateUfo() {
@@ -522,7 +546,7 @@ function updateUfoRotation() {
 }
 
 function updateUfoActions() {
-    ufoIdleAction.paused = angularVel.phi || angularVel.theta;
+    ufoIdleAction.paused = angularVel.phi || angularVel.theta || keys[32];
 }
 
 function updateUfoIndicator() {
