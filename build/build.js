@@ -15,6 +15,7 @@ function main() {
 
     buildHtml();
     buildJs();
+    buildMisc();
 
     runZip();
 
@@ -37,6 +38,11 @@ function buildHtml() {
     htmlSrc = htmlSrc.replace(
         './node_modules/three/build/three.js',
         'https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.min.js'
+    );
+
+    htmlSrc = htmlSrc.replace(
+        './asset/Minecraft.min.ttf',
+        './f.ttf'
     );
 
     [
@@ -91,9 +97,14 @@ function buildJs() {
     });
 }
 
+function buildMisc() {
+    fs.copyFileSync('./asset/Minecraft.min.ttf', './dist/f.ttf');
+}
+
 function runZip() {
     zip.file('index.html', fs.readFileSync('./dist/index.html'));
     zip.file('index.js', fs.readFileSync('./dist/index.js'));
+    zip.file('f.ttf', fs.readFileSync('./dist/f.ttf'));
 
     const data = zip.generate({
         base64: false,
