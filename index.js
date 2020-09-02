@@ -15,6 +15,9 @@ var LAYER_EARTH = 2;
 var LAYER_UI = 4;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
+var CAMERA_MAX_Z = 20;
+var CAMERA_MIN_Z = 18;
+var CAMERA_ZOOM_VEL = 0.05;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -557,6 +560,8 @@ function animate() {
     stats.begin();
     // DEBUG END
 
+    updateCamera();
+
     updateVelocity();
     updateMovement();
 
@@ -594,6 +599,19 @@ function animate() {
     // DEBUG END
 
     requestAnimationFrame(animate);
+}
+
+function updateCamera() {
+    // const camPos = camera.position;
+    // if (keys[32]) {
+    //     if (camPos.z > CAMERA_MIN_Z) {
+    //         camPos.z = Math.max(camPos.z - CAMERA_ZOOM_VEL, CAMERA_MIN_Z);
+    //     }
+    // } else {
+    //     if (camPos.z < CAMERA_MAX_Z) {
+    //         camPos.z = Math.min(camPos.z + CAMERA_ZOOM_VEL, CAMERA_MAX_Z);
+    //     }
+    // }
 }
 
 function updateEarth(delta) {
