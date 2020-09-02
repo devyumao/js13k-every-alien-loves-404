@@ -8,8 +8,13 @@
             margin: 0;
             transition: 1s;
         }
-        canvas {
-            display: block;
+        canvas, .ui {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
         }
         .ui {
             z-index: 1;
@@ -26,9 +31,10 @@
     </style>
 </head>
 <body>
-    <!-- <div class="ui">
-        <div id="radar"></div>
-    </div> -->
+    <div class="ui">
+        <!-- <div id="radar"></div> -->
+        <canvas id="ui-canvas"></canvas>
+    </div>
     <script src="./node_modules/three/build/three.js"></script>
     <!-- <script src="./node_modules/three/examples/js/postprocessing/EffectComposer.js"></script> -->
     <!-- <script src="./node_modules/three/examples/js/postprocessing/RenderPass.js"></script> -->

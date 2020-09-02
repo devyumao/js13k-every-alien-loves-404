@@ -1,5 +1,8 @@
 (function () {
 
+var W = window.innerWidth;
+var H = window.innerHeight;
+var Dpr = 2;
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
 var RADIUS_OCEAN = 9.9;
@@ -26,7 +29,15 @@ var baseAxisY = new THREE.Vector3(0, 1, 0);
 //     earthTexture: null
 // };
 
-var renderer, scene, camera, lights, colors;
+var renderer, scene, sceneRTT, camera, cameraRTT, lights, colors;
+
+var rtTexture, rtMesh;
+var rttDprRatio = 4;
+window.rttOn = true;
+
+var uiCanvas, uiCtx;
+uiDprRatio = 2;
+
 // var composer;
 
 var keys = [];
@@ -58,12 +69,12 @@ var trackTime = Date.now();
 var colors = {
     'Bg Top': '#0e1a25',// '#912deb',
     'Bg Bottom': '#202731',// '#59b5e8',
-    'Ambient': '#ddd',
-    'Key': '#bbb',// '#ccc',
+    'Ambient': '#eee',
+    'Key': '#fff',// '#ccc',
     'Sky A': '#297aa7',// '#2981a7',
     'Sky B': '#3434c0', //'#4629a7',
-    'OceanLevels': ['#1eb5ca', '#21a6c5', '#1299b9', '#158eaa'],
-    'Land': '#63af67',
+    'OceanLevels': ['#31d9d9', '#32c5d9', '#44a9c8', '#2694b9', '#067499'],
+    'Land': '#9be889',
     'Change': function () {}
 };
 
@@ -76,13 +87,6 @@ var stats;
 main();
 
 function main() {
-    document.body.setAttribute(
-        'style',
-        'background:linear-gradient(90deg, '
-            + colors['Bg Top'] + ' 0%, '
-            + colors['Bg Bottom'] + ' 100%);'
-    );
-
     loadResources().then(() => {
         // DEBUG
         initDebug();
@@ -114,6 +118,8 @@ function main() {
         initControl();
 
         animate();
+
+        updateUI();
     });
 }
 
@@ -128,14 +134,66 @@ function loadResources() {
 }
 
 function initScene() {
+    // ====== Main ======
     scene = new THREE.Scene();
+    sceneRTT = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 1000);
     camera.position.z = 20;
     camera.layers.enable(LAYER_EARTH);
 
     cameraMixer = new THREE.AnimationMixer(camera);
     initCameraZoomAction();
+
+    var bg = new THREE.PlaneBufferGeometry(500, 200);
+    var bgMat = new THREE.ShaderMaterial({
+        uniforms: {
+            t: {
+                value: new THREE.Color(colors['Bg Top'])
+            },
+            b: {
+                value: new THREE.Color(colors['Bg Bottom'])
+            }
+        },
+        vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+        fragmentShader: 'uniform vec3 t;uniform vec3 b;varying vec2 vUv;void main(){gl_FragColor = vec4(mix(t,b,vUv.y),1.0);}'
+    });
+    var bgMesh = new THREE.Mesh(bg, bgMat);
+    bgMesh.position.z = -100;
+    scene.add(bgMesh);
+
+
+
+    // ====== RTT ======
+    var width = W / rttDprRatio;
+    var height = H / rttDprRatio;
+    cameraRTT = new THREE.OrthographicCamera(
+        width / - 2,
+        width / 2,
+        height / 2,
+        height / - 2,
+        -10000,
+        10000
+    );
+    cameraRTT.position.z = 100;
+
+    rtTexture = new THREE.WebGLRenderTarget(
+        width,
+        height,
+        {
+            minFilter: THREE.NearestFilter,
+            magFilter: THREE.NearestFilter,
+            format: THREE.RGBFormat
+        }
+    );
+
+    var plane = new THREE.PlaneBufferGeometry(width, height);
+    var mat = new THREE.MeshBasicMaterial({
+        map: rtTexture.texture
+    });
+    rtMesh = new THREE.Mesh(plane, mat);
+    rtMesh.position.z = -100;
+    sceneRTT.add(rtMesh);
 }
 
 function initCameraZoomAction() {
@@ -200,11 +258,22 @@ function initRenderer() {
         antialias: true,
         alpha: true
     });
-    renderer.setPixelRatio((window.devicePixelRatio) ? window.devicePixelRatio : 1);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    Dpr = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    renderer.setPixelRatio(Dpr);
+    renderer.setSize(W, H);
     renderer.autoClear = false;
     renderer.setClearColor(0x000000, 0.0);
     document.body.appendChild(renderer.domElement);
+
+
+    // ====== UI ======
+    uiCanvas = document.getElementById('ui-canvas');
+    width = W / uiDprRatio;
+    height = H / uiDprRatio;
+    uiCanvas.width = width;
+    uiCanvas.height = height;
+
+    uiCtx = uiCanvas.getContext('2d');
 }
 
 // function initEffects() {
@@ -221,7 +290,7 @@ function initRenderer() {
 // }
 
 function createEarth() {
-    var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 3);
+    var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 4);
     earthSurface = [];
     for (var i = 0; i < geo.vertices.length; ++i) {
         earthSurface.push({
@@ -233,9 +302,10 @@ function createEarth() {
     }
 
     var mat = new THREE.MeshPhongMaterial({
-        color: colors.Ocean,
+        color: colors.OceanLevels[0],
         flatShading: true,
         vertexColors: true,
+        shininess: 0.8,
         // wireframe: true
     });
 
@@ -360,10 +430,11 @@ function createLand() {
     var mat = new THREE.MeshPhongMaterial({
         color: colors.Land,
         flatShading: true,
+        shininess: 0
         // wireframe: true
     });
 
-    var geo = new THREE.IcosahedronGeometry(RADIUS_LAND, 3);
+    var geo = new THREE.IcosahedronGeometry(RADIUS_LAND, 4);
     land = new THREE.Mesh(geo, mat);
     land.layers.set(LAYER_EARTH);
     land.receiveShadow = true;
@@ -416,7 +487,7 @@ function createLand() {
         }
     }
 
-    for (var level = 1; level > -3; --level) {
+    for (var level = 1; level > -4; --level) {
         for (var i = 0; i < geo.faces.length; ++i) {
             var f = geo.faces[i];
             var la = isVLeveled[f.a] > level;
@@ -439,7 +510,7 @@ function createLand() {
         earth.geometry.faces[id].color = new THREE.Color(
             i >= 1
                 ? colors.OceanLevels[0]
-                : colors.OceanLevels[-i + 1]
+                : colors.OceanLevels[Math.min(-i + 1, colors.OceanLevels.length - 1)]
         );
     });
 
@@ -451,20 +522,22 @@ function createSky() {
     var sky = new THREE.Group();
     pivot.add(sky);
 
-    var R = 100;
-    var r = 2;
-    for (var i = 0; i < 1000; ++i) {
+    var R = 80;
+    var r = 2.5;
+    for (var i = 0; i < 2000; ++i) {
         var mat = new THREE.MeshBasicMaterial({
-            color: '#555',
-            opacity: Math.random()
+            color: '#999',
+            opacity: Math.random(),
+            transparent: true
         });
         var geo = new THREE.TetrahedronGeometry(Math.random(), 0);
         var mesh = new THREE.Mesh(geo, mat);
 
-        var sph = new THREE.Spherical(R);
+        var radius = R * (Math.random() * 2 + 1);
+        var sph = new THREE.Spherical(radius);
         sph.phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
         sph.theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
-        mesh.position.setFromSphericalCoords(R, sph.phi, sph.theta);
+        mesh.position.setFromSphericalCoords(radius, sph.phi, sph.theta);
 
         mesh.rotation.set(
             Math.random() * Math.PI * 2,
@@ -540,10 +613,29 @@ function createClouds() {
 }
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    var oldWidth = W;
+    var oldHeight = H;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    var width = W / rttDprRatio;
+    var height = H / rttDprRatio;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    // composer.setSize(window.innerWidth, window.innerHeight);
+
+    cameraRTT.left = width / - 2;
+    cameraRTT.right = width / 2;
+    cameraRTT.top = height / 2;
+    cameraRTT.bottom = height / - 2;
+    cameraRTT.updateProjectionMatrix();
+
+    rtMesh.scale.x *= W / oldWidth;
+    rtMesh.scale.y *= H / oldHeight;
+    rtTexture.width = width;
+    rtTexture.height = height;
+
+    renderer.setSize(W, H);
+    // composer.setSize(W, H);
 }
 
 function initControl() {
@@ -578,12 +670,16 @@ function animate() {
 
     updateComet();
 
+    updateUI();
+
     cameraMixer.update(delta);
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
 
-    // renderer.autoClear = false;
-    renderer.clear();
+    if (window.rttOn) {
+        renderer.setRenderTarget(rtTexture);
+        renderer.clear();
+    }
 
     // camera.layers.set(LAYER_BLOOM);
     // composer.render();
@@ -593,6 +689,12 @@ function animate() {
     renderer.render(scene, camera);
     camera.layers.set(LAYER_DEFAULT);
     renderer.render(scene, camera);
+
+    if (window.rttOn) {
+        renderer.setRenderTarget(null);
+        renderer.clear();
+        renderer.render(sceneRTT, cameraRTT);
+    }
 
     // DEBUG
 	stats.end();
@@ -619,7 +721,7 @@ function updateEarth(delta) {
     for (var i = 0; i < vertices.length; ++i) {
         var s = earthSurface[i];
         s.delta += delta * 0.002;
-        var scale = Math.min(Math.sin(s.delta) * 0.06, RADIUS_LAND - RADIUS_OCEAN - 0.1);
+        var scale = Math.min(Math.sin(s.delta) * 0.1, RADIUS_LAND - RADIUS_OCEAN - 0.1);
         vertices[i].set(
             s.x + scale,
             s.y + scale,
@@ -777,6 +879,17 @@ function updateComet() {
     // }
 }
 
+function updateUI() {
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+
+    uiCtx.fillStyle = '#00f';
+
+    mediaGroup.children.forEach(function (media) {
+        var pos = worldToScreen(media);
+        uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
+    });
+}
+
 // DEBUG
 function initDebug() {
     gui = new dat.GUI();
@@ -853,7 +966,7 @@ function initDebug() {
             setTime(isNight);
         });
 
-    gui.hide();
+    // gui.hide();
 
     stats = new Stats();
     stats.showPanel(0);
@@ -872,6 +985,18 @@ function getVectorFromSphCoord(radius, phi, theta) {
 
 function randRad() {
     return THREE.MathUtils.randFloatSpread(2 * Math.PI);
+}
+
+function worldToScreen(obj) {
+    var widthHalf = W / 2;
+    var heightHalf = H / 2;
+    var pos = new THREE.Vector3();
+    obj.getWorldPosition(pos);
+    // console.log(pos.z); // TODO: may be used to know if is at back
+    pos.project(camera);
+    pos.x = (pos.x * widthHalf) + widthHalf;
+    pos.y = - (pos.y * heightHalf) + heightHalf;
+    return pos;
 }
 
 })();
