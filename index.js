@@ -18,9 +18,12 @@ var LAYER_EARTH = 2;
 var LAYER_UI = 4;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
-var CAMERA_MAX_Z = 20;
-var CAMERA_MIN_Z = 18;
-var CAMERA_ZOOM_VEL = 0.05;
+var CAMERA_DISTANT_Z = 20;
+var CAMERA_CLOSE_Z = 15;
+var CAMERA_ZOOM_VEL = (CAMERA_DISTANT_Z - CAMERA_CLOSE_Z) / 20;
+var CAMERA_ROT_MAX_X = 0.36;
+var CAMERA_ROT_MIN_X = 0;
+var CAMERA_ROT_VEL = (CAMERA_ROT_MAX_X - CAMERA_ROT_MIN_X) / 20;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -197,15 +200,19 @@ function initScene() {
 }
 
 function initCameraZoomAction() {
-    var pos = camera.position;
+    // TODO: refactor
+    // var pos = camera.position;
     var posTrack = new THREE.VectorKeyframeTrack(
         '.position',
         [0, 1],
-        [pos.x, pos.y, pos.z, pos.x, pos.y, 15]
+        [
+            0, 0, 15,
+            0, 0, 15.4
+        ]
     );
-    var clip = new THREE.AnimationClip('CameraZoom', 1, [posTrack]);
+    var clip = new THREE.AnimationClip('CameraZoom', 0.2, [posTrack]);
     cameraZoomAction = cameraMixer.clipAction(clip);
-    cameraZoomAction.loop = THREE.LoopOnce;
+    cameraZoomAction.loop = THREE.LoopPingPong;
 }
 
 function initLight() {
@@ -318,6 +325,7 @@ function createEarth() {
 function createUfo() {
     var ufoCore = new THREE.Mesh(
         new THREE.SphereGeometry(0.25, 32, 32),
+        // new THREE.MeshPhongMaterial({ color: '#eee', shininess: 0.2 })
         new THREE.MeshToonMaterial({ color: '#bfbfbf' })
     );
     ufoCore.position.y = -0.05;
@@ -325,6 +333,7 @@ function createUfo() {
 
     var ufoPlate = new THREE.Mesh(
         new THREE.ConeGeometry(0.5, 0.25, 32),
+        // new THREE.MeshPhongMaterial({ color: '#acacac', shininess: 0.2 })
         new THREE.MeshToonMaterial({ color: '#8c8c8c' })
     );
     ufo.add(ufoPlate);
@@ -338,10 +347,10 @@ function createUfo() {
     ufo.add(ufoIndicator);
 
     ufoRay = new THREE.Mesh(
-        new THREE.ConeGeometry(0.55, 1, 32),
-        new THREE.MeshToonMaterial({ color: '#ffec3d', opacity: 0.5 })
+        new THREE.ConeGeometry(0.5, 0.9, 32),
+        new THREE.MeshToonMaterial({ color: '#faad14', transparent: true, opacity: 0.5 })
     );
-    ufoRay.position.y = -0.25;
+    ufoRay.position.y = -0.35;
     ufoRay.scale.set(0, 0, 0);
     ufo.add(ufoRay);
 
@@ -704,16 +713,23 @@ function animate() {
 }
 
 function updateCamera() {
-    // const camPos = camera.position;
-    // if (keys[32]) {
-    //     if (camPos.z > CAMERA_MIN_Z) {
-    //         camPos.z = Math.max(camPos.z - CAMERA_ZOOM_VEL, CAMERA_MIN_Z);
-    //     }
-    // } else {
-    //     if (camPos.z < CAMERA_MAX_Z) {
-    //         camPos.z = Math.min(camPos.z + CAMERA_ZOOM_VEL, CAMERA_MAX_Z);
-    //     }
-    // }
+    const camPos = camera.position;
+    const camRot = camera.rotation;
+    if (keys[32]) {
+        if (camPos.z > CAMERA_CLOSE_Z) {
+            camPos.z = Math.max(camPos.z - CAMERA_ZOOM_VEL, CAMERA_CLOSE_Z);
+        }
+        if (camRot.x < CAMERA_ROT_MAX_X) {
+            camRot.x = Math.min(camRot.x + CAMERA_ROT_VEL, CAMERA_ROT_MAX_X);
+        }
+    } else {
+        if (camPos.z < CAMERA_DISTANT_Z) {
+            camPos.z = Math.min(camPos.z + CAMERA_ZOOM_VEL, CAMERA_DISTANT_Z);
+        }
+        if (camRot.x > CAMERA_ROT_MIN_X) {
+            camRot.x = Math.max(camRot.x - CAMERA_ROT_VEL, CAMERA_ROT_MIN_X);
+        }
+    }
 }
 
 function updateEarth(delta) {
@@ -787,11 +803,13 @@ function updateMovement() {
 function updateRay() {
     if (keys[32]) { // Space
         // TODO: refactor
-        if (ufoRay.scale.x < 1) {
-            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.90);
+        if (camera.position.z === CAMERA_CLOSE_Z && ufoRay.scale.x < 1) {
+            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.95);
             ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
+            !cameraZoomAction.isRunning() && cameraZoomAction.play();
         }
     } else {
+        cameraZoomAction.isRunning() && cameraZoomAction.stop();
         if (ufoRay.scale.x > 0) {
             var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
             ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
