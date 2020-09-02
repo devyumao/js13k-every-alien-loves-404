@@ -225,7 +225,7 @@ function initLight() {
 
     lights.ambient = new THREE.AmbientLight(colors.ambient, 0.5);
     lights.ambient.layers.enable(LAYER_EARTH);
-    // lights.ambient.layers.disable(LAYER_DEFAULT);
+    lights.ambient.layers.disable(LAYER_DEFAULT);
     scene.add(lights.ambient);
 
     lights.key = new THREE.DirectionalLight(colors.key, 0.8);
@@ -651,6 +651,7 @@ function createClouds() {
                 THREE.MathUtils.randFloatSpread(Math.PI * 2),
                 THREE.MathUtils.randFloatSpread(Math.PI * 2)
             )
+            mesh.layers.set(LAYER_EARTH);
             clouds.add(mesh);
         }
     }
