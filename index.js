@@ -40,6 +40,7 @@ window.rttOn = true;
 
 var uiCanvas, uiCtx;
 uiDprRatio = 2;
+var popups, popupsContainer;
 
 // var composer;
 
@@ -95,6 +96,7 @@ function main() {
         initDebug();
         // DEBUG END
 
+        initUI();
         initScene();
         initLight();
 
@@ -121,8 +123,6 @@ function main() {
         initControl();
 
         animate();
-
-        updateUI();
     });
 }
 
@@ -134,6 +134,11 @@ function loadResources() {
         // });
         resolve();
     });
+}
+
+function initUI() {
+    popupsContainer = document.getElementById('p');
+    popups = [];
 }
 
 function initScene() {
@@ -405,6 +410,10 @@ function addMedia(phi, theta) {
         new THREE.MeshBasicMaterial({ color: '#ff4d4f' })
     );
     media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
+
+    media._viewed = Math.ceil(Math.random() * 10);
+    media._maxV = Math.ceil(Math.random() * 1000);
+
     mediaGroup.add(media);
 }
 
@@ -897,15 +906,76 @@ function updateComet() {
     // }
 }
 
+var lastUpdateMedia = Date.now();
 function updateUI() {
-    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+    // uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
 
-    uiCtx.fillStyle = '#00f';
+    // uiCtx.fillStyle = '#00f';
+
+    for (var i = 0; i < popupsContainer.children.length; ++i) {
+        popupsContainer.children[i]._using = false;
+    }
+
+    var updateNumber = Date.now() - lastUpdateMedia > 1000;
+    if (updateNumber) {
+        lastUpdateMedia = Date.now();
+    }
 
     mediaGroup.children.forEach(function (media) {
         var pos = worldToScreen(media);
-        uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
+        // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
+        var popup = media._popup;
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.setAttribute('class', 'p');
+            popupsContainer.appendChild(popup);
+            media._popup = popup;
+            popup._media = media;
+        }
+
+        var width = popup.clientWidth;
+        var height = popup.clientHeight;
+
+        var style = popup.style;
+        style.left = Math.round(pos.x - width / 2) + 'px';
+        style.top = Math.round(pos.y - height) + 'px';
+        style.opacity = pos.z < 0 ? 0.2 : 1;
+
+        if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
+            // TODO: check media is not removed from mediaGroup
+
+            if (media._viewed >= 1e6) {
+                const text = Math.round(media._viewed / 1e5) / 10 + 'M';
+                popup.setAttribute('class', 'p r');
+                popup.innerText = text + ' Viewed 🔥🔥🔥';
+            }
+            else if (media._viewed >= 1e3) {
+                const text = Math.round(media._viewed / 100) / 10 + 'K';
+                popup.setAttribute('class', 'p y');
+                popup.innerText = text + ' Viewed 🔥';
+            }
+            else {
+                popup.innerText = media._viewed + ' Viewed';
+            }
+            if (Math.random() > 0.95) {
+                // TODO: not so randomly
+                media._viewed += Math.ceil(Math.random() * 2e6);
+            }
+            else {
+                media._viewed += Math.ceil(Math.random() * media._maxV);
+            }
+        }
+
+        popup._using = true;
     });
+
+    for (var i = 0; i < popupsContainer.children.length; ++i) {
+        var child = popupsContainer.children[i];
+        if (!child._using) {
+            popupsContainer.removeChild(child);
+            child._media._popup = null;
+        }
+    }
 }
 
 // DEBUG
@@ -1010,10 +1080,11 @@ function worldToScreen(obj) {
     var heightHalf = H / 2;
     var pos = new THREE.Vector3();
     obj.getWorldPosition(pos);
-    // console.log(pos.z); // TODO: may be used to know if is at back
+    var z = pos.z;
     pos.project(camera);
     pos.x = (pos.x * widthHalf) + widthHalf;
     pos.y = - (pos.y * heightHalf) + heightHalf;
+    pos.z = z;
     return pos;
 }
 

@@ -4,9 +4,15 @@
     <meta charset="utf-8">
     <title>Alien</title>
     <style>
+        @font-face {
+            font-family: Minecraft;
+            src: url('./asset/Minecraft.min.ttf') format('truetype');
+        }
         body {
             margin: 0;
             transition: 1s;
+            font-family: Minecraft, monospace;
+            letter-spacing: 1.5px;
         }
         canvas, .ui {
             position: absolute;
@@ -18,6 +24,25 @@
         }
         .ui {
             z-index: 1;
+        }
+        .p {
+            position: absolute;
+            padding: 5px 8px;
+            /* border: 3px solid salmon; */
+            background-color: #574AB7;
+            color: white;
+            border-radius: 4px;
+            transition: 0.5s;
+            transition-property: opacity;
+            font-size: 12px;
+        }
+        .p.y {
+            background-color: #A641E7;
+            font-size: 14px;
+        }
+        .p.r {
+            background-color: #DD4391;
+            font-size: 14px;
         }
         #radar {
             position: absolute;
@@ -33,6 +58,7 @@
 <body>
     <div class="ui">
         <!-- <div id="radar"></div> -->
+        <div id="p"></div>
         <canvas id="ui-canvas"></canvas>
     </div>
     <script src="./node_modules/three/build/three.js"></script>
