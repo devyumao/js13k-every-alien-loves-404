@@ -225,7 +225,7 @@ function initLight() {
 
     lights.ambient = new THREE.AmbientLight(colors.ambient, 0.5);
     lights.ambient.layers.enable(LAYER_EARTH);
-    lights.ambient.layers.disable(LAYER_DEFAULT);
+    // lights.ambient.layers.disable(LAYER_DEFAULT);
     scene.add(lights.ambient);
 
     lights.key = new THREE.DirectionalLight(colors.key, 0.8);
@@ -626,8 +626,34 @@ function getNearestSpecimen() {
 }
 
 function createClouds() {
-    // clouds = new THREE.Group();
-    // pivot.add(clouds);
+    clouds = new THREE.Group();
+    pivot.add(clouds);
+
+    var R = RADIUS_EARTH + 2;
+    var mat = new THREE.MeshPhongMaterial({
+        color: new THREE.Color('#fff'),
+        flatShading: true
+    });
+    for (var cluster = 0; cluster < 40; ++cluster) {
+        var cnt = 4;
+        var phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        var theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        var scale = Math.random() * 0.5 + 0.8;
+        for (var i = 0; i < cnt; ++i) {
+            var r = [0.4, 0.6, 0.8, 0.4][i] + THREE.MathUtils.randFloatSpread(0.2);
+            var geo = new THREE.IcosahedronGeometry(r * scale, 0);
+            var mesh = new THREE.Mesh(geo, mat);
+            phi += 0.04 + THREE.MathUtils.randFloatSpread(Math.PI * 0.03);
+            var dR = THREE.MathUtils.randFloatSpread(0.1);
+            mesh.position.setFromSphericalCoords(R + dR, phi, theta);
+            mesh.rotation.set(
+                THREE.MathUtils.randFloatSpread(Math.PI * 2),
+                THREE.MathUtils.randFloatSpread(Math.PI * 2),
+                THREE.MathUtils.randFloatSpread(Math.PI * 2)
+            )
+            clouds.add(mesh);
+        }
+    }
 }
 
 function onWindowResize() {
@@ -762,6 +788,17 @@ function updateClouds(delta) {
     //     var scale = Math.sin(cloudsSurface[i].delta) * 0.06;
     //     clouds.children[i].scale.setScalar(1 + scale);
     // }
+    clouds.rotation.x += delta * 2e-5;
+    clouds.rotation.z += delta * 1.2e-5;
+
+    clouds.children.forEach(function (child, i) {
+        child.rotation.y += delta * 2e-4;
+        child.rotation.x += delta * 1e-4;
+
+        var s = earthSurface[i]; // use as random number here
+        var scale = Math.sin(s.delta / 5 + i / 10) * 0.8 + 0.2;
+        child.scale.setScalar(scale);
+    });
 }
 
 function updateVelocity() {
