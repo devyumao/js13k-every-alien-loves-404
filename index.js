@@ -39,7 +39,7 @@ var rttDprRatio = 4;
 window.rttOn = true;
 
 var uiCanvas, uiCtx;
-uiDprRatio = 2;
+var uiDprRatio = 2;
 var popups, popupsContainer;
 
 // var composer;
@@ -280,8 +280,8 @@ function initRenderer() {
 
     // ====== UI ======
     uiCanvas = document.getElementById('ui-canvas');
-    width = W / uiDprRatio;
-    height = H / uiDprRatio;
+    var width = W / uiDprRatio;
+    var height = H / uiDprRatio;
     uiCanvas.width = width;
     uiCanvas.height = height;
 
@@ -853,10 +853,10 @@ function updateRay() {
         if (camera.position.z === CAMERA_CLOSE_Z && ufoRay.scale.x < 1) {
             var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.95);
             ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
-            !cameraZoomAction.isRunning() && cameraZoomAction.play();
+            // !cameraZoomAction.isRunning() && cameraZoomAction.play();
         }
     } else {
-        cameraZoomAction.isRunning() && cameraZoomAction.stop();
+        // cameraZoomAction.isRunning() && cameraZoomAction.stop();
         if (ufoRay.scale.x > 0) {
             var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
             ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
