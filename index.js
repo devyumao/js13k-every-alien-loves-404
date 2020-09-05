@@ -24,6 +24,21 @@ var CAMERA_ZOOM_VEL = (CAMERA_DISTANT_Z - CAMERA_CLOSE_Z) / 20;
 var CAMERA_ROT_MAX_X = 0.36;
 var CAMERA_ROT_MIN_X = 0;
 var CAMERA_ROT_VEL = (CAMERA_ROT_MAX_X - CAMERA_ROT_MIN_X) / 20;
+var CAMERA_STATES = {
+    distant: 0,
+    close: 1,
+    zoomingIn: 2,
+    zoomingOut: 3
+};
+var UFO_STATES = {
+    idle: 0,
+    flying: 1,
+    increasingRay: 4,
+    reducingRay: 5,
+    raying: 6,
+    raySucceed: 7,
+    rayFailed: 8
+};
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -69,6 +84,20 @@ var ufoOriginRotation;
 
 var clock;
 var trackTime = Date.now();
+
+var wigglerEl = document.getElementById('w');
+var wigglerPointerEl = document.getElementById('wp');
+wigglerPointerEl.style.animationPlayState = 'paused';
+// window.getComputedStyle(wigglerPointerEl);
+var wigglerData = {
+    length: 16,
+    targetStart: 6 / 16,
+    targetEnd: 8 / 16,
+    pointerPos: 0
+};
+
+var cameraState = CAMERA_STATES.distant;
+var ufoState = UFO_STATES.idle;
 
 var colors = {
     'Bg Top': '#0e1a25',// '#912deb',
@@ -352,7 +381,7 @@ function createUfo() {
     ufo.add(ufoIndicator);
 
     ufoRay = new THREE.Mesh(
-        new THREE.ConeGeometry(0.5, 0.9, 32),
+        new THREE.ConeGeometry(0.45, 0.8, 32),
         new THREE.MeshToonMaterial({ color: '#faad14', transparent: true, opacity: 0.5 })
     );
     ufoRay.position.y = -0.35;
@@ -702,8 +731,6 @@ function animate() {
     updateVelocity();
     updateMovement();
 
-    updateRay();
-
     var delta = clock.getDelta();
     updateEarth(delta * 1e3);
     updateClouds(delta * 1e3);
@@ -716,6 +743,8 @@ function animate() {
     updateComet();
 
     updateUI();
+
+    updateWiggler();
 
     cameraMixer.update(delta);
     ufoMixer.update(delta);
@@ -754,6 +783,9 @@ function updateCamera() {
     if (keys[32]) {
         if (camPos.z > CAMERA_CLOSE_Z) {
             camPos.z = Math.max(camPos.z - CAMERA_ZOOM_VEL, CAMERA_CLOSE_Z);
+            cameraState = CAMERA_STATES.zoomingIn;
+        } else {
+            cameraState = CAMERA_STATES.close;
         }
         if (camRot.x < CAMERA_ROT_MAX_X) {
             camRot.x = Math.min(camRot.x + CAMERA_ROT_VEL, CAMERA_ROT_MAX_X);
@@ -761,6 +793,9 @@ function updateCamera() {
     } else {
         if (camPos.z < CAMERA_DISTANT_Z) {
             camPos.z = Math.min(camPos.z + CAMERA_ZOOM_VEL, CAMERA_DISTANT_Z);
+            cameraState = CAMERA_STATES.zoomingOut;
+        } else {
+            cameraState = CAMERA_STATES.distant;
         }
         if (camRot.x > CAMERA_ROT_MIN_X) {
             camRot.x = Math.max(camRot.x - CAMERA_ROT_VEL, CAMERA_ROT_MIN_X);
@@ -847,27 +882,49 @@ function updateMovement() {
     angularVel.theta && pivot.rotateOnWorldAxis(baseAxisY, angularVel.theta);
 }
 
-function updateRay() {
-    if (keys[32]) { // Space
-        // TODO: refactor
-        if (camera.position.z === CAMERA_CLOSE_Z && ufoRay.scale.x < 1) {
-            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 0.95);
-            ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
-            // !cameraZoomAction.isRunning() && cameraZoomAction.play();
-        }
-    } else {
-        // cameraZoomAction.isRunning() && cameraZoomAction.stop();
-        if (ufoRay.scale.x > 0) {
-            var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
-            ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
-        }
-    }
-}
-
 function updateUfo() {
+    console.log(ufoState);
+    updateUfoState();
     updateUfoRotation();
     updateUfoActions();
     updateUfoIndicator();
+    updateRay();
+}
+
+function updateUfoState() {
+    switch (ufoState) {
+        case UFO_STATES.idle:
+            if (angularVel.phi || angularVel.theta) {
+                ufoState = UFO_STATES.flying;
+            } else if (keys[32] && cameraState === CAMERA_STATES.close) {
+                ufoState = UFO_STATES.increasingRay;
+            }
+            break;
+        case UFO_STATES.flying:
+            if (!angularVel.phi && !angularVel.theta) {
+                ufoState = UFO_STATES.idle;
+            }
+            break;
+        case UFO_STATES.increasingRay:
+            if (keys[32]) {
+                if (ufoRay.scale.x >= 1) {
+                    ufoState = UFO_STATES.raying;
+                }
+            } else {
+                ufoState = UFO_STATES.reducingRay;
+            }
+            break;
+        case UFO_STATES.reducingRay:
+            if (ufoRay.scale.x <= 0) {
+                ufoState = UFO_STATES.idle;
+            }
+            break;
+        case UFO_STATES.raying:
+            if (!keys[32]) {
+                ufoState = UFO_STATES.reducingRay;
+            }
+            break;
+    }
 }
 
 function updateUfoRotation() {
@@ -879,7 +936,7 @@ function updateUfoRotation() {
 }
 
 function updateUfoActions() {
-    ufoIdleAction.paused = angularVel.phi || angularVel.theta || keys[32];
+    ufoIdleAction.paused = ufoState !== UFO_STATES.idle;
 }
 
 function updateUfoIndicator() {
@@ -887,9 +944,23 @@ function updateUfoIndicator() {
     const isRunning = ufoIndicatorAction.isRunning();
     if (minSpecimenAngle <= 0.5) {
         !isRunning && ufoIndicatorAction.play();
+        // TODO: quadratic
         ufoIndicatorAction.timeScale = 0.55 / (0.05 + minSpecimenAngle);
     } else {
         isRunning && ufoIndicatorAction.stop();
+    }
+}
+
+function updateRay() {
+    switch (ufoState) {
+        case UFO_STATES.increasingRay:
+            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 1);
+            ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
+            // !cameraZoomAction.isRunning() && cameraZoomAction.play();
+            break;
+        case UFO_STATES.reducingRay:
+            var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
+            ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
     }
 }
 
@@ -1013,6 +1084,17 @@ function updateUI() {
             popupsContainer.removeChild(child);
             child._media._popup = null;
         }
+    }
+}
+
+function updateWiggler() {
+    if (ufoRay.scale.x >= 1) {
+        wigglerEl.style.opacity = 1;
+        if (wigglerPointerEl.style.animationPlayState === 'paused') {
+            wigglerPointerEl.style.animationPlayState = 'running';
+        }
+    } else {
+        wigglerEl.style.opacity = 0;
     }
 }
 
