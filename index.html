@@ -52,27 +52,30 @@
             height: 2vh;
             width: 16vh;
             transform: translateX(-50%);
-            box-sizing: border-box;
             border-radius: 0.25vh;
-            border-left: 6vh solid #f1a96c;
-            border-right: 8vh solid #f1a96c;
             box-shadow: 0 0 0 0.4vh rgba(255, 255, 255, 0.8);
-            background: #95de64;
+            background: #f1a96c;
             opacity: 0;
             transition: opacity 0.15s;
+        }
+        #wt {
+            margin-left: 6vh;
+            width: 2vh;
+            height: 100%;
+            background: #95de64;
         }
         #wp {
             position: absolute;
             top: 0;
-            left: -5vh;
+            left: 0;
             width: 0.3vh;
             height: 100%;
             background: rgba(255, 255, 255, 0.7);
-            animation: wiggle 1s linear infinite alternate;
+            animation: wiggle 0.8s linear infinite alternate;
         }
         @keyframes wiggle {
             100% {
-                left: 6vh;
+                left: 100%;
             }
         }
     </style>
@@ -81,12 +84,13 @@
     <div class="ui">
         <div id="p"></div>
         <div id="w">
+            <div id="wt"></div>
             <div id="wp"></div>
         </div>
         <canvas id="ui-canvas"></canvas>
     </div>
     <script src="./node_modules/three/build/three.js"></script>
-    <!-- <script src="./node_modules/three/examples/js/postprocessing/EffectComposer.js"></script> -->
+    <script src="./node_modules/three/examples/js/postprocessing/EffectComposer.js"></script>
     <!-- <script src="./node_modules/three/examples/js/postprocessing/RenderPass.js"></script> -->
     <!-- <script src='./node_modules/three/examples/js/postprocessing/ShaderPass.js'></script> -->
     <!-- <script src="./node_modules/three/examples/js/shaders/LuminosityHighPassShader.js"></script> -->

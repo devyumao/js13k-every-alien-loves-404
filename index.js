@@ -15,7 +15,6 @@ var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
-var LAYER_UI = 4;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
 var CAMERA_DISTANT_Z = 20;
@@ -33,11 +32,11 @@ var CAMERA_STATES = {
 var UFO_STATES = {
     idle: 0,
     flying: 1,
-    increasingRay: 4,
-    reducingRay: 5,
-    raying: 6,
-    raySucceed: 7,
-    rayFailed: 8
+    increasingRay: 2,
+    reducingRay: 3,
+    raying: 4,
+    takingSpec: 5,
+    rayFailed: 6
 };
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
@@ -67,13 +66,13 @@ var clouds, cloudsSurface;
 var land, landSurface;
 var comet;
 var ufo = new THREE.Group();
-var ufoRay;
+var ufoRay = new THREE.Group();
 var ufoIndicator;
 var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
-var cameraMixer, ufoMixer, ufoIndicatorMixer;
-var cameraZoomAction, ufoIdleAction, ufoIndicatorAction;
+var cameraMixer, ufoMixer, ufoIndicatorMixer, ufoRay0Mixer, ufoRay1Mixer;
+var cameraZoomAction, ufoIdleAction, ufoIndicatorAction, ufoRay0Action, ufoRay1Action;
 
 var track = new THREE.Group();
 var pathLength = 0;
@@ -86,14 +85,15 @@ var clock;
 var trackTime = Date.now();
 
 var wigglerEl = document.getElementById('w');
+var wigglerTargetEl = document.getElementById('wt');
 var wigglerPointerEl = document.getElementById('wp');
-wigglerPointerEl.style.animationPlayState = 'paused';
+wigglerPointerEl.style.animationPlayState = 'running';
 // window.getComputedStyle(wigglerPointerEl);
 var wigglerData = {
     length: 16,
-    targetStart: 6 / 16,
-    targetEnd: 8 / 16,
-    pointerPos: 0
+    targetStart: 0,
+    targetEnd: 0,
+    pointerLength: 0.3
 };
 
 var cameraState = CAMERA_STATES.distant;
@@ -380,13 +380,21 @@ function createUfo() {
     // ufoIndicator.layers.enable(LAYER_BLOOM);
     ufo.add(ufoIndicator);
 
-    ufoRay = new THREE.Mesh(
-        new THREE.ConeGeometry(0.45, 0.8, 32),
-        new THREE.MeshToonMaterial({ color: '#faad14', transparent: true, opacity: 0.5 })
-    );
     ufoRay.position.y = -0.35;
     ufoRay.scale.set(0, 0, 0);
     ufo.add(ufoRay);
+
+    var ufoRay0 = new THREE.Mesh(
+        new THREE.ConeGeometry(0.45, 0.8, 32),
+        new THREE.MeshToonMaterial({ color: '#faad14', transparent: true, opacity: 0.5 })
+    );
+    ufoRay.add(ufoRay0);
+
+    var ufoRay1 = new THREE.Mesh(
+        new THREE.ConeGeometry(0.45, 0.8, 32),
+        new THREE.MeshToonMaterial({ color: '#bfbfbf', transparent: true, opacity: 0 })
+    );
+    ufoRay.add(ufoRay1);
 
     ufo.position.setFromSphericalCoords(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
@@ -397,6 +405,8 @@ function createUfo() {
 
     initUfoMixer();
     initUfoIndicatorMixer();
+    initUfoRayMixer();
+    initUfoRayMixer1();
 }
 
 function initUfoMixer() {
@@ -422,6 +432,30 @@ function initUfoIndicatorMixer() {
     ufoIndicatorAction = ufoIndicatorMixer.clipAction(clip);
     ufoIndicatorAction.loop = THREE.LoopPingPong;
 }
+
+function initUfoRayMixer() {
+    ufoRay0Mixer = new THREE.AnimationMixer(ufoRay.children[0]);
+    var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 0.6]);
+    var clip = new THREE.AnimationClip('UfoRay0', 0.8, [opacityTrack]);
+    ufoRay0Action = ufoRay0Mixer.clipAction(clip);
+    ufoRay0Action.loop = THREE.LoopPingPong;
+}
+
+function initUfoRayMixer1() {
+    ufoRay1Mixer = new THREE.AnimationMixer(ufoRay.children[1]);
+    var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0.6, 0]);
+    var clip = new THREE.AnimationClip('UfoRay1', 0.8, [opacityTrack]);
+    ufoRay1Action = ufoRay1Mixer.clipAction(clip);
+    ufoRay1Action.loop = THREE.LoopPingPong;
+}
+
+// function initMixer({ object, clipName, duration, tracks }) {
+//     var mixer = new THREE.AnimationMixer(object);
+//     var clip = new THREE.AnimationClip(clipName, duration, tracks);
+//     var action = mixer.clipAction(clip);
+//     action.loop = THREE.LoopPingPong;
+//     return { mixer, action };
+// }
 
 function initSpecimenPoints() {
     for (var i = 0; i < SPECIMENS_AMOUNT; ++i) {
@@ -749,6 +783,8 @@ function animate() {
     cameraMixer.update(delta);
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
+    ufoRay0Mixer.update(delta);
+    ufoRay1Mixer.update(delta);
 
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
@@ -790,7 +826,7 @@ function updateCamera() {
         if (camRot.x < CAMERA_ROT_MAX_X) {
             camRot.x = Math.min(camRot.x + CAMERA_ROT_VEL, CAMERA_ROT_MAX_X);
         }
-    } else {
+    } else if (ufoState === UFO_STATES.reducingRay || ufoState === UFO_STATES.idle) {
         if (camPos.z < CAMERA_DISTANT_Z) {
             camPos.z = Math.min(camPos.z + CAMERA_ZOOM_VEL, CAMERA_DISTANT_Z);
             cameraState = CAMERA_STATES.zoomingOut;
@@ -883,7 +919,7 @@ function updateMovement() {
 }
 
 function updateUfo() {
-    console.log(ufoState);
+    // console.log(ufoState);
     updateUfoState();
     updateUfoRotation();
     updateUfoActions();
@@ -909,20 +945,32 @@ function updateUfoState() {
             if (keys[32]) {
                 if (ufoRay.scale.x >= 1) {
                     ufoState = UFO_STATES.raying;
+                    initWigglerData();
                 }
             } else {
                 ufoState = UFO_STATES.reducingRay;
             }
             break;
         case UFO_STATES.reducingRay:
-            if (ufoRay.scale.x <= 0) {
+            if (keys[32]) { // FIXME:
+                ufoState = UFO_STATES.increasingRay;
+            } else if (ufoRay.scale.x <= 0) {
                 ufoState = UFO_STATES.idle;
             }
             break;
         case UFO_STATES.raying:
             if (!keys[32]) {
-                ufoState = UFO_STATES.reducingRay;
+                var wigglerResult = checkWigglerResult();
+                ufoState = wigglerResult ? UFO_STATES.takingSpec : UFO_STATES.rayFailed;
             }
+            break;
+        case UFO_STATES.takingSpec:
+            if (ufoRay.scale.x <= 0) {
+                ufoState = UFO_STATES.idle;
+            }
+            break;
+        case UFO_STATES.rayFailed:
+            ufoState = UFO_STATES.reducingRay;
             break;
     }
 }
@@ -952,15 +1000,34 @@ function updateUfoIndicator() {
 }
 
 function updateRay() {
+    var scale;
     switch (ufoState) {
         case UFO_STATES.increasingRay:
-            var scaleUp = Math.min(ufoRay.scale.x + 0.03, 1);
-            ufoRay.scale.set(scaleUp, scaleUp, scaleUp);
+            scale = Math.min(ufoRay.scale.x + 0.03, 1);
+            ufoRay.scale.set(scale, scale, scale);
             // !cameraZoomAction.isRunning() && cameraZoomAction.play();
             break;
         case UFO_STATES.reducingRay:
-            var scaleDown = Math.max(ufoRay.scale.x - 0.03, 0);
-            ufoRay.scale.set(scaleDown, scaleDown, scaleDown);
+            scale = Math.max(ufoRay.scale.x - 0.03, 0);
+            ufoRay.scale.set(scale, scale, scale);
+            break;
+        case UFO_STATES.raying:
+            if (!ufoRay0Action.isRunning()) {
+                ufoRay0Action.play();
+                ufoRay1Action.play();
+            }
+            break;
+        case UFO_STATES.takingSpec:
+            if (ufoRay0Action.isRunning()) {
+                ufoRay0Action.stop();
+                ufoRay1Action.stop();
+                // ufoRay.children[0].material.color = new THREE.Color('#73d13d');
+                ufoRay.children[0].material.opacity = 0.5;
+                ufoRay.children[1].material.opacity = 0;
+            }
+            scale = Math.max(ufoRay.scale.x - 0.02, 0);
+            ufoRay.scale.set(scale, scale, scale);
+            break;
     }
 }
 
@@ -1088,91 +1155,114 @@ function updateUI() {
 }
 
 function updateWiggler() {
-    if (ufoRay.scale.x >= 1) {
-        wigglerEl.style.opacity = 1;
-        if (wigglerPointerEl.style.animationPlayState === 'paused') {
+    // if (ufoState === UFO_STATES.raying) {
+    //     // if (wigglerPointerEl.style.animationPlayState === 'paused') {
+    //     //     wigglerPointerEl.style.animationPlayState = 'running';
+    //     // }
+    //     wigglerEl.style.opacity = 1;
+    // } else if (ufoState === UFO_STATES.reducingRay) {
+    //     wigglerEl.style.opacity = 0;
+    // }
+
+    switch (ufoState) {
+        case UFO_STATES.raying:
+            wigglerEl.style.opacity = 1;
+            break;
+        case UFO_STATES.idle:
+        case UFO_STATES.rayFailed:
+            wigglerEl.style.opacity = 0;
             wigglerPointerEl.style.animationPlayState = 'running';
-        }
-    } else {
-        wigglerEl.style.opacity = 0;
+            break;
     }
+}
+
+function initWigglerData() {
+    wigglerData.targetStart = 6;
+    wigglerData.targetEnd = 8;
+}
+
+function checkWigglerResult() {
+    wigglerPointerEl.style.animationPlayState = 'paused';
+    var pointerPos = parseFloat(window.getComputedStyle(wigglerPointerEl).left, 10) / window.innerHeight * 100;
+    return pointerPos >= wigglerData.targetStart - wigglerData.pointerLength
+        && pointerPos <= wigglerData.targetEnd;
 }
 
 // DEBUG
 function initDebug() {
-    gui = new dat.GUI();
+    // gui = new dat.GUI();
 
-    var isNight = false;
+    // var isNight = false;
 
-    guiConfigs = Object.assign({}, colors);
-    guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
-    guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
-    guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
-    guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
+    // guiConfigs = Object.assign({}, colors);
+    // guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
+    // guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
+    // guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
+    // guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
 
-    gui.addColor(guiConfigs, 'Bg Top')
-        .onChange(function (val) {
-            document.body.setAttribute(
-                'style',
-                'background:linear-gradient(90deg, '
-                    + val + ' 0%, '
-                    + guiConfigs['Bg Bottom'] + ' 100%);'
-            );
-        });
-    gui.addColor(guiConfigs, 'Bg Bottom')
-        .onChange(function (val) {
-            document.body.setAttribute(
-                'style',
-                'background:linear-gradient(90deg, '
-                    + guiConfigs['Bg Top'] + ' 0%, '
-                    + val + ' 100%);'
-            );
-        });
+    // gui.addColor(guiConfigs, 'Bg Top')
+    //     .onChange(function (val) {
+    //         document.body.setAttribute(
+    //             'style',
+    //             'background:linear-gradient(90deg, '
+    //                 + val + ' 0%, '
+    //                 + guiConfigs['Bg Bottom'] + ' 100%);'
+    //         );
+    //     });
+    // gui.addColor(guiConfigs, 'Bg Bottom')
+    //     .onChange(function (val) {
+    //         document.body.setAttribute(
+    //             'style',
+    //             'background:linear-gradient(90deg, '
+    //                 + guiConfigs['Bg Top'] + ' 0%, '
+    //                 + val + ' 100%);'
+    //         );
+    //     });
 
-    gui.addColor(guiConfigs, 'Ambient')
-        .onChange(function (val) {
-            lights.ambient.color.set(val);
-        });
-    gui.addColor(guiConfigs, 'Key')
-        .onChange(function (val) {
-            lights.key.color.set(val);
-        });
-    gui.addColor(guiConfigs, 'Sky A')
-        .onChange(function (val) {
-            lights.fillTopEarth.color.set(val);
-        });
-    gui.addColor(guiConfigs, 'Sky B')
-        .onChange(function (val) {
-            lights.fillBottomEarth.color.set(val);
-        });
+    // gui.addColor(guiConfigs, 'Ambient')
+    //     .onChange(function (val) {
+    //         lights.ambient.color.set(val);
+    //     });
+    // gui.addColor(guiConfigs, 'Key')
+    //     .onChange(function (val) {
+    //         lights.key.color.set(val);
+    //     });
+    // gui.addColor(guiConfigs, 'Sky A')
+    //     .onChange(function (val) {
+    //         lights.fillTopEarth.color.set(val);
+    //     });
+    // gui.addColor(guiConfigs, 'Sky B')
+    //     .onChange(function (val) {
+    //         lights.fillBottomEarth.color.set(val);
+    //     });
 
-    [0, 1, 2, 3].forEach(function (x) {
-        gui.addColor(guiConfigs, 'Ocean' + x)
-            .onChange(function (val) {
-                colors.OceanLevels[x] = val;
+    // [0, 1, 2, 3].forEach(function (x) {
+    //     gui.addColor(guiConfigs, 'Ocean' + x)
+    //         .onChange(function (val) {
+    //             colors.OceanLevels[x] = val;
 
-                landSurface.forEach(function (i, id) {
-                    earth.geometry.faces[id].color = new THREE.Color(
-                        i >= 1
-                            ? colors.OceanLevels[0]
-                            : colors.OceanLevels[-i + 1]
-                    );
-                });
-                earth.geometry.colorsNeedUpdate = true;
-                earth.geometry.elementsNeedUpdate = true;
-            });
-    });
+    //             landSurface.forEach(function (i, id) {
+    //                 earth.geometry.faces[id].color = new THREE.Color(
+    //                     i >= 1
+    //                         ? colors.OceanLevels[0]
+    //                         : colors.OceanLevels[-i + 1]
+    //                 );
+    //             });
+    //             earth.geometry.colorsNeedUpdate = true;
+    //             earth.geometry.elementsNeedUpdate = true;
+    //         });
+    // });
 
-    gui.addColor(guiConfigs, 'Land')
-        .onChange(function (val) {
-            land.material.color.set(val);
-        });
+    // gui.addColor(guiConfigs, 'Land')
+    //     .onChange(function (val) {
+    //         land.material.color.set(val);
+    //     });
 
-    gui.add(guiConfigs, 'Change')
-        .onChange(function () {
-            isNight = !isNight;
-            setTime(isNight);
-        });
+    // gui.add(guiConfigs, 'Change')
+    //     .onChange(function () {
+    //         isNight = !isNight;
+    //         setTime(isNight);
+    //     });
 
     // gui.hide();
 
