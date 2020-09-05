@@ -390,11 +390,11 @@ function createUfo() {
     );
     ufoRay.add(ufoRay0);
 
-    var ufoRay1 = new THREE.Mesh(
-        new THREE.ConeGeometry(0.45, 0.8, 32),
-        new THREE.MeshToonMaterial({ color: '#bfbfbf', transparent: true, opacity: 0 })
-    );
-    ufoRay.add(ufoRay1);
+    // var ufoRay1 = new THREE.Mesh(
+    //     new THREE.ConeGeometry(0.45, 0.8, 32),
+    //     new THREE.MeshToonMaterial({ color: '#bfbfbf', transparent: true, opacity: 0 })
+    // );
+    // ufoRay.add(ufoRay1);
 
     ufo.position.setFromSphericalCoords(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
     ufo.rotation.x = 1;
@@ -405,8 +405,8 @@ function createUfo() {
 
     initUfoMixer();
     initUfoIndicatorMixer();
-    initUfoRayMixer();
-    initUfoRayMixer1();
+    // initUfoRayMixer();
+    // initUfoRayMixer1();
 }
 
 function initUfoMixer() {
@@ -433,21 +433,21 @@ function initUfoIndicatorMixer() {
     ufoIndicatorAction.loop = THREE.LoopPingPong;
 }
 
-function initUfoRayMixer() {
-    ufoRay0Mixer = new THREE.AnimationMixer(ufoRay.children[0]);
-    var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 0.6]);
-    var clip = new THREE.AnimationClip('UfoRay0', 0.8, [opacityTrack]);
-    ufoRay0Action = ufoRay0Mixer.clipAction(clip);
-    ufoRay0Action.loop = THREE.LoopPingPong;
-}
+// function initUfoRayMixer() {
+//     ufoRay0Mixer = new THREE.AnimationMixer(ufoRay);
+//     var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 0.6]);
+//     var clip = new THREE.AnimationClip('UfoRay0', 0.8, [opacityTrack]);
+//     ufoRay0Action = ufoRay0Mixer.clipAction(clip);
+//     ufoRay0Action.loop = THREE.LoopPingPong;
+// }
 
-function initUfoRayMixer1() {
-    ufoRay1Mixer = new THREE.AnimationMixer(ufoRay.children[1]);
-    var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0.6, 0]);
-    var clip = new THREE.AnimationClip('UfoRay1', 0.8, [opacityTrack]);
-    ufoRay1Action = ufoRay1Mixer.clipAction(clip);
-    ufoRay1Action.loop = THREE.LoopPingPong;
-}
+// function initUfoRayMixer1() {
+//     ufoRay1Mixer = new THREE.AnimationMixer(ufoRay.children[1]);
+//     var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0.6, 0]);
+//     var clip = new THREE.AnimationClip('UfoRay1', 0.8, [opacityTrack]);
+//     ufoRay1Action = ufoRay1Mixer.clipAction(clip);
+//     ufoRay1Action.loop = THREE.LoopPingPong;
+// }
 
 // function initMixer({ object, clipName, duration, tracks }) {
 //     var mixer = new THREE.AnimationMixer(object);
@@ -783,8 +783,8 @@ function animate() {
     cameraMixer.update(delta);
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
-    ufoRay0Mixer.update(delta);
-    ufoRay1Mixer.update(delta);
+    // ufoRay0Mixer.update(delta);
+    // ufoRay1Mixer.update(delta);
 
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
@@ -1011,20 +1011,20 @@ function updateRay() {
             scale = Math.max(ufoRay.scale.x - 0.03, 0);
             ufoRay.scale.set(scale, scale, scale);
             break;
-        case UFO_STATES.raying:
-            if (!ufoRay0Action.isRunning()) {
-                ufoRay0Action.play();
-                ufoRay1Action.play();
-            }
-            break;
+        // case UFO_STATES.raying:
+        //     if (!ufoRay0Action.isRunning()) {
+        //         ufoRay0Action.play();
+        //         ufoRay1Action.play();
+        //     }
+        //     break;
         case UFO_STATES.takingSpec:
-            if (ufoRay0Action.isRunning()) {
-                ufoRay0Action.stop();
-                ufoRay1Action.stop();
-                // ufoRay.children[0].material.color = new THREE.Color('#73d13d');
-                ufoRay.children[0].material.opacity = 0.5;
-                ufoRay.children[1].material.opacity = 0;
-            }
+            // if (ufoRay0Action.isRunning()) {
+            //     ufoRay0Action.stop();
+            //     ufoRay1Action.stop();
+            //     // ufoRay.children[0].material.color = new THREE.Color('#73d13d');
+            //     ufoRay.children[0].material.opacity = 0.5;
+            //     ufoRay.children[1].material.opacity = 0;
+            // }
             scale = Math.max(ufoRay.scale.x - 0.02, 0);
             ufoRay.scale.set(scale, scale, scale);
             break;
