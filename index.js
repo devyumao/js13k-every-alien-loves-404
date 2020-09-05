@@ -46,7 +46,7 @@ var baseAxisY = new THREE.Vector3(0, 1, 0);
 //     earthTexture: null
 // };
 
-var renderer, scene, sceneRTT, camera, cameraRTT, lights, colors;
+var renderer, scene, sceneRTT, camera, cameraRTT, lights;
 
 var rtTexture, rtMesh;
 var rttDprRatio = 4;
@@ -112,8 +112,8 @@ var colors = {
 };
 
 // DEBUG
-var gui;
-var guiConfigs;
+// var gui;
+// var guiConfigs;
 var stats;
 // DEBUG END
 
