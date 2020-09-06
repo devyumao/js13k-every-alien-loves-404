@@ -1,4 +1,4 @@
-(function () {
+(function (THREE, window, document) {
 
 var W = window.innerWidth;
 var H = window.innerHeight;
@@ -1352,4 +1352,4 @@ function worldToScreen(obj) {
     return pos;
 }
 
-})();
+})(THREE, window, document);
