@@ -47,7 +47,7 @@ var GAME_STATES = {
     inGame$: 2,
     gameOver$: 3
 };
-var BEFORE_GAME_ANIMATION_DURATION = 0.3;
+var BEFORE_GAME_ANIMATION_DURATION = 3;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -96,6 +96,11 @@ var trackTime = Date.now();
 var gameState = GAME_STATES.welcome$;
 var cameraState = CAMERA_STATES.distant$;
 var ufoState = UFO_STATES.idle$;
+
+var cameraBeforeGamePosition = new THREE.Vector3(-50, -0.65, RADIUS_UFO_POS + 2);
+var cameraNormalPosition = new THREE.Vector3(0, 0, CAMERA_DISTANT_Z);
+var ufoBeforeGamePosition = new THREE.Vector3(-50, 0, RADIUS_UFO_POS);
+var ufoNormalPosition = getVectorFromSphCoord(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
 
 var colors = {
     primary: '#DD4391',
@@ -332,7 +337,7 @@ function initScene() {
     sceneRTT = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 1000);
-    camera.position.z = CAMERA_DISTANT_Z;
+    // camera.position.z = CAMERA_DISTANT_Z;
     camera.layers.enable(LAYER_EARTH);
 
     initCameraMixer();
@@ -570,7 +575,7 @@ function createUfo() {
     // );
     // ufoRay.add(ufoRay1);
 
-    ufo.position.setFromSphericalCoords(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
+    ufo.position.set(...ufoNormalPosition.toArray());
     ufo.rotation.x = 1;
     ufo.layers.set(LAYER_DEFAULT);
     scene.add(ufo);
@@ -904,7 +909,7 @@ function initControl() {
             updateGameState();
 
             setTimeout(function () {
-                camera.lookAt(ufo.position);
+                // camera.lookAt(ufo.position);
                 gameState = GAME_STATES.inGame$;
                 updateGameState();
             }, BEFORE_GAME_ANIMATION_DURATION * 1000);
@@ -943,6 +948,7 @@ function animate() {
         updateUI();
 
         wiggler.update$();
+        failMsg.update$();
 
         cameraMixer.update(delta);
         ufoMixer.update(delta);
@@ -953,8 +959,6 @@ function animate() {
 
         updateBeforeGame(delta);
     }
-
-    failMsg.update$();
 
     // ufoRay0Mixer.update(delta);
     // ufoRay1Mixer.update(delta);
@@ -1101,23 +1105,17 @@ function updateMovement() {
 
 function updateGameState() {
     if (gameState === GAME_STATES.welcome$) {
-        var left = -50;
-        ufo.position.set(left, 0, RADIUS_UFO_POS);
-
-        camera.position.set(left, -1.1, RADIUS_UFO_POS + 2);
-        camera.lookAt(left, -0.6, RADIUS_UFO_POS);
+        ufo.position.set(...ufoBeforeGamePosition.toArray());
+        camera.position.set(...cameraBeforeGamePosition.toArray());
     }
     else if (gameState === GAME_STATES.beforeGame$) {
         var ui = document.getElementById('a');
         ui.parentNode.removeChild(ui);
 
-        var ufoTargetPos = new THREE.Vector3();
-        ufoTargetPos.setFromSphericalCoords(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
-        ufo._v = ufoTargetPos.sub(ufo.position)
+        ufo._v = ufoNormalPosition.clone().sub(ufo.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
-        var cameraTargetPos = new THREE.Vector3(0, 0, CAMERA_DISTANT_Z);
-        camera._v = cameraTargetPos.sub(camera.position)
+        camera._v = cameraNormalPosition.clone().sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
     }
     else {
@@ -1126,8 +1124,10 @@ function updateGameState() {
 }
 
 function updateBeforeGame(delta) {
-    ufo.position.add(ufo._v.clone().multiplyScalar(delta));
-    camera.position.add(camera._v.clone().multiplyScalar(delta));
+    ufo.position.add(ufo._v.clone().multiplyScalar(delta))
+        .clamp(ufoBeforeGamePosition, ufoNormalPosition);
+    camera.position.add(camera._v.clone().multiplyScalar(delta))
+        .clamp(cameraBeforeGamePosition, cameraNormalPosition);
 }
 
 function updateUfo() {
