@@ -117,6 +117,31 @@ var colors = {
 var stats;
 // DEBUG END
 
+var failMsg = {
+    el: document.getElementById('f'),
+    _clock: null,
+    running: false,
+
+    update() {
+        switch (ufoState) {
+            case UFO_STATES.rayFailed:
+                var el = this.el;
+                if (!el.className || el.className === 'o') {
+                    this.running = true;
+                    // el.style.transitionDuration = '0.15s';
+                    el.className = 'i';
+                    this._clock = Date.now();
+                } else if (Date.now() - this._clock >= 1e3) {
+                    // el.style.transitionDuration = '0';
+                    el.className = 'o';
+                    this.running = false;
+                }
+                break;
+        }
+    }
+};
+
+
 main();
 
 function main() {
@@ -780,6 +805,8 @@ function animate() {
 
     updateWiggler();
 
+    failMsg.update();
+
     cameraMixer.update(delta);
     ufoMixer.update(delta);
     ufoIndicatorMixer.update(delta);
@@ -970,7 +997,9 @@ function updateUfoState() {
             }
             break;
         case UFO_STATES.rayFailed:
-            ufoState = UFO_STATES.reducingRay;
+            if (!failMsg.running) {
+                ufoState = UFO_STATES.reducingRay;
+            }
             break;
     }
 }
@@ -1155,23 +1184,20 @@ function updateUI() {
 }
 
 function updateWiggler() {
-    // if (ufoState === UFO_STATES.raying) {
-    //     // if (wigglerPointerEl.style.animationPlayState === 'paused') {
-    //     //     wigglerPointerEl.style.animationPlayState = 'running';
-    //     // }
-    //     wigglerEl.style.opacity = 1;
-    // } else if (ufoState === UFO_STATES.reducingRay) {
-    //     wigglerEl.style.opacity = 0;
-    // }
-
     switch (ufoState) {
         case UFO_STATES.raying:
             wigglerEl.style.opacity = 1;
             break;
         case UFO_STATES.idle:
-        case UFO_STATES.rayFailed:
             wigglerEl.style.opacity = 0;
             wigglerPointerEl.style.animationPlayState = 'running';
+            break;
+        case UFO_STATES.rayFailed:
+            // FIXME:
+            if (!failMsg.running) {
+                wigglerEl.style.opacity = 0;
+                wigglerPointerEl.style.animationPlayStates = 'running';
+            }
             break;
     }
 }

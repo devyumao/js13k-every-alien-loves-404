@@ -73,6 +73,26 @@
             background: rgba(255, 255, 255, 0.7);
             animation: wiggle 0.8s linear infinite alternate;
         }
+        #f {
+            position: absolute;
+            top: 25%;
+            left: calc(50% - 1vh);
+            font-size: 6vh;
+            color: #fff;
+            text-shadow: 0vh 0vh 1vh rgba(0, 0, 0, 0.5);
+            transition: all 0.15s ease 0.4s;
+            opacity: 0;
+            transform: translateY(50%);
+        }
+        #f.i {
+            transition: all 0.15s ease 0.4s;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #f.o {
+            transition: all 0.15s;
+            opacity: 0;
+        }
         @keyframes wiggle {
             100% {
                 left: 100%;
@@ -87,6 +107,7 @@
             <div id="wt"></div>
             <div id="wp"></div>
         </div>
+        <div id="f">?</div>
         <canvas id="ui-canvas"></canvas>
     </div>
     <script src="./node_modules/three/build/three.js"></script>
