@@ -92,18 +92,6 @@ var ufoOriginRotation;
 var clock;
 var trackTime = Date.now();
 
-// var wigglerEl = document.getElementById('w');
-// var wigglerTargetEl = document.getElementById('wt');
-// var wigglerPointerEl = document.getElementById('wp');
-// wigglerPointerEl.style.animationPlayState = 'running';
-// // window.getComputedStyle(wigglerPointerEl);
-// var wigglerData = {
-//     length: 16,
-//     targetStart: 0,
-//     targetEnd: 0,
-//     pointerLength: 0.3
-// };
-
 var gameState = GAME_STATES.welcome$;
 var cameraState = CAMERA_STATES.distant$;
 var ufoState = UFO_STATES.idle$;
