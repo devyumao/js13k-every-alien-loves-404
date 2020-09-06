@@ -84,17 +84,17 @@ var ufoOriginRotation;
 var clock;
 var trackTime = Date.now();
 
-var wigglerEl = document.getElementById('w');
-var wigglerTargetEl = document.getElementById('wt');
-var wigglerPointerEl = document.getElementById('wp');
-wigglerPointerEl.style.animationPlayState = 'running';
-// window.getComputedStyle(wigglerPointerEl);
-var wigglerData = {
-    length: 16,
-    targetStart: 0,
-    targetEnd: 0,
-    pointerLength: 0.3
-};
+// var wigglerEl = document.getElementById('w');
+// var wigglerTargetEl = document.getElementById('wt');
+// var wigglerPointerEl = document.getElementById('wp');
+// wigglerPointerEl.style.animationPlayState = 'running';
+// // window.getComputedStyle(wigglerPointerEl);
+// var wigglerData = {
+//     length: 16,
+//     targetStart: 0,
+//     targetEnd: 0,
+//     pointerLength: 0.3
+// };
 
 var cameraState = CAMERA_STATES.distant;
 var ufoState = UFO_STATES.idle;
@@ -116,6 +116,49 @@ var colors = {
 // var guiConfigs;
 var stats;
 // DEBUG END
+
+var wiggler = {
+    el: document.getElementById('w'),
+    targetEl: document.getElementById('wt'),
+    pointerEl: document.getElementById('wp'),
+
+    length: 16,
+    targetStart: 0,
+    targetEnd: 0,
+    pointerLength: 0.3,
+
+    initData() {
+        this.targetStart = 6;
+        this.targetEnd = 8;
+    },
+
+    checkResult() {
+        this.pointerEl.style.animationPlayState = 'paused';
+        var pointerPos = parseFloat(window.getComputedStyle(this.pointerEl).left, 10) / window.innerHeight * 100;
+        return pointerPos >= this.targetStart - this.pointerLength
+            && pointerPos <= this.targetEnd;
+    },
+
+    update() {
+        switch (ufoState) {
+            case UFO_STATES.raying:
+                this.el.style.opacity = 1;
+                break;
+            case UFO_STATES.idle:
+            case UFO_STATES.rayFailed:
+                this.el.style.opacity = 0;
+                this.pointerEl.style.animationPlayState = 'running';
+                break;
+            // case UFO_STATES.rayFailed:
+            //     // FIXME:
+            //     if (!failMsg.running) {
+            //         this.el.style.opacity = 0;
+            //         this.pointerEl.style.animationPlayStates = 'running';
+            //     }
+            //     break;
+        }
+    }
+}
 
 var failMsg = {
     el: document.getElementById('f'),
@@ -803,7 +846,7 @@ function animate() {
 
     updateUI();
 
-    updateWiggler();
+    wiggler.update();
 
     failMsg.update();
 
@@ -972,7 +1015,7 @@ function updateUfoState() {
             if (keys[32]) {
                 if (ufoRay.scale.x >= 1) {
                     ufoState = UFO_STATES.raying;
-                    initWigglerData();
+                    wiggler.initData();
                 }
             } else {
                 ufoState = UFO_STATES.reducingRay;
@@ -987,7 +1030,7 @@ function updateUfoState() {
             break;
         case UFO_STATES.raying:
             if (!keys[32]) {
-                var wigglerResult = checkWigglerResult();
+                var wigglerResult = wiggler.checkResult();
                 ufoState = wigglerResult ? UFO_STATES.takingSpec : UFO_STATES.rayFailed;
             }
             break;
@@ -1181,37 +1224,6 @@ function updateUI() {
             child._media._popup = null;
         }
     }
-}
-
-function updateWiggler() {
-    switch (ufoState) {
-        case UFO_STATES.raying:
-            wigglerEl.style.opacity = 1;
-            break;
-        case UFO_STATES.idle:
-            wigglerEl.style.opacity = 0;
-            wigglerPointerEl.style.animationPlayState = 'running';
-            break;
-        case UFO_STATES.rayFailed:
-            // FIXME:
-            if (!failMsg.running) {
-                wigglerEl.style.opacity = 0;
-                wigglerPointerEl.style.animationPlayStates = 'running';
-            }
-            break;
-    }
-}
-
-function initWigglerData() {
-    wigglerData.targetStart = 6;
-    wigglerData.targetEnd = 8;
-}
-
-function checkWigglerResult() {
-    wigglerPointerEl.style.animationPlayState = 'paused';
-    var pointerPos = parseFloat(window.getComputedStyle(wigglerPointerEl).left, 10) / window.innerHeight * 100;
-    return pointerPos >= wigglerData.targetStart - wigglerData.pointerLength
-        && pointerPos <= wigglerData.targetEnd;
 }
 
 // DEBUG
