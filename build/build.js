@@ -93,7 +93,14 @@ function buildJs() {
     jsMinify.minify({
         compressor: 'terser',
         input: './tmp/index.js',
-        output: './dist/index.js'
+        output: './dist/index.js',
+        options: {
+            mangle: {
+                properties: {
+                    regex: /\$$/
+                }
+            }
+        }
     });
 }
 
