@@ -44,7 +44,7 @@ var GAME_STATES = {
     inGame: 2,
     gameOver: 3
 };
-var BEFORE_GAME_ANIMATION_DURATION = 3;
+var BEFORE_GAME_ANIMATION_DURATION = 0.3;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -56,11 +56,10 @@ var baseAxisY = new THREE.Vector3(0, 1, 0);
 var renderer, scene, sceneRTT, camera, cameraRTT, lights;
 
 var rtTexture, rtMesh;
-var rttDprRatio = 4;
+var rttDprRatio = Math.max(2, Math.round(H / 150));
 window.rttOn = true;
 
 var uiCanvas, uiCtx;
-var uiDprRatio = 2;
 var popups, popupsContainer;
 
 // var composer;
@@ -107,6 +106,7 @@ var ufoState = UFO_STATES.idle;
 var gameState = GAME_STATES.welcome;
 
 var colors = {
+    primary: '#DD4391',
     'Bg Top': '#0e1a25',// '#912deb',
     'Bg Bottom': '#202731',// '#59b5e8',
     'Ambient': '#eee',
@@ -423,11 +423,10 @@ function initRenderer() {
     renderer.setClearColor(0x000000, 0.0);
     document.body.appendChild(renderer.domElement);
 
-
     // ====== UI ======
-    uiCanvas = document.getElementById('ui-canvas');
-    var width = W / uiDprRatio;
-    var height = H / uiDprRatio;
+    uiCanvas = document.getElementById('u');
+    var width = W * Dpr;
+    var height = H * Dpr;
     uiCanvas.width = width;
     uiCanvas.height = height;
 
@@ -831,8 +830,7 @@ function onWindowResize() {
 
     rtMesh.scale.x *= W / oldWidth;
     rtMesh.scale.y *= H / oldHeight;
-    rtTexture.width = width;
-    rtTexture.height = height;
+    rtTexture.setSize(width, height);
 
     renderer.setSize(W, H);
     // composer.setSize(W, H);
@@ -850,6 +848,7 @@ function initControl() {
             setTimeout(function () {
                 camera.lookAt(ufo.position);
                 gameState = GAME_STATES.inGame;
+                updateGameState();
             }, BEFORE_GAME_ANIMATION_DURATION * 1000);
         }
     });
@@ -1053,6 +1052,9 @@ function updateGameState() {
         camera._v = cameraTargetPos.sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
     }
+    else {
+        updateCanvas();
+    }
 }
 
 function updateBeforeGame(delta) {
@@ -1227,10 +1229,6 @@ function updateComet() {
 
 var lastUpdateMedia = Date.now();
 function updateUI() {
-    // uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
-
-    // uiCtx.fillStyle = '#00f';
-
     for (var i = 0; i < popupsContainer.children.length; ++i) {
         popupsContainer.children[i]._using = false;
     }
@@ -1293,6 +1291,56 @@ function updateUI() {
         if (!child._using) {
             popupsContainer.removeChild(child);
             child._media._popup = null;
+        }
+    }
+}
+
+function updateCanvas() {
+    uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+
+    var margin = [20, 30];
+    var textColor = '#ddd';
+    drawText('DNA Samples Collected (4/10)', margin[0], margin[1], textColor, 16);
+
+    var radius = 9;
+    var d = radius * 2;
+    var circleMargin = 4;
+    var circleTop = 42;
+    var collectedCount = 4;
+    var emptyColor = 'rgba(200,200,200,.1)';
+    for (var i = 0; i < 10; ++i) {
+        var color = i < collectedCount ? colors.OceanLevels[0] : emptyColor;
+        drawCircle(margin[0] + (d + circleMargin) * i, circleTop, d, d, 2, color);
+    }
+
+    var barWidth = d * 10 + circleMargin * 9;
+    var rightStart = W - margin[0] - barWidth;
+    drawText('People Heard About Aliens', rightStart - 4, margin[1], textColor, 16);
+    drawCircle(rightStart, circleTop, barWidth, 8, 2, emptyColor);
+
+    var peoplePercent = 0.7;
+    drawCircle(rightStart, circleTop, barWidth * peoplePercent, 8, 2, colors.primary, 1);
+
+    function drawText(text, x, y, color, fontSize) {
+        uiCtx.fillStyle = color;
+        uiCtx.font = fontSize * Dpr + 'px Minecraft';
+        uiCtx.fillText(text, x * Dpr, y * Dpr);
+    }
+
+    function drawCircle(x, y, w, h, borderRadius, color, noRightRadius) {
+        uiCtx.fillStyle = color;
+        var wSize = w * Dpr;
+        var hSize = h * Dpr;
+        uiCtx.fillRect(x * Dpr, y * Dpr, wSize, hSize);
+
+        var x2 = x + w - borderRadius;
+        var y2 = y + h - borderRadius;
+        var d = borderRadius * Dpr;
+        uiCtx.clearRect(x * Dpr, y * Dpr, d, d);
+        uiCtx.clearRect(x * Dpr, y2 * Dpr, d, d);
+        if (!noRightRadius) {
+            uiCtx.clearRect(x2 * Dpr, y * Dpr, d, d);
+            uiCtx.clearRect(x2 * Dpr, y2 * Dpr, d, d);
         }
     }
 }
@@ -1377,7 +1425,7 @@ function initDebug() {
 
     stats = new Stats();
     stats.showPanel(0);
-    document.body.appendChild(stats.dom);
+    // document.body.appendChild(stats.dom);
 }
 // DEBUG END
 

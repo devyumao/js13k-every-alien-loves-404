@@ -132,14 +132,14 @@ function runZip() {
     if (size < 7 * 1024) {
         sizeColor = chalk.green;
     }
-    else if (size < 10 * 1024) {
+    else if (size < 12 * 1024) {
         sizeColor = chalk.yellow;
     }
     else if (size < 13 * 1024) {
-        sizeColor = chalk.orange;
+        sizeColor = chalk.red;
     }
     else {
-        sizeColor = chalk.red;
+        sizeColor = chalk.magenta;
     }
 
     console.log(chalk.cyan('Build complete. Zipped size: ')
