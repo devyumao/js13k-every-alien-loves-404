@@ -44,6 +44,24 @@
             background-color: #DD4391;
             font-size: 14px;
         }
+        #a {
+            text-align: center;
+            color: #aaa;
+            position: relative;
+            top: 50%;
+        }
+        h1 {
+            font-size: 45px;
+            color: #fff;
+        }
+        @keyframes blink {
+            from { opacity: 1; }
+            to   { opacity: 0.4; }
+        }
+        h2 {
+            animation: 0.5s blink ease-in-out infinite alternate;
+            margin: 10px 0;
+        }
         #w {
             /* display: none; */
             position: absolute;
@@ -102,13 +120,20 @@
 </head>
 <body>
     <div class="ui">
+        <div id="a">
+            <!-- Welcome Screen -->
+            <h1>Every Alien Loves 404</h1>
+            <p>Best with Earphones</p>
+            <h2>Press Enter</h2>
+        </div>
+
         <div id="p"></div>
         <div id="w">
             <div id="wt"></div>
             <div id="wp"></div>
         </div>
         <div id="f">?</div>
-        <canvas id="ui-canvas"></canvas>
+        <canvas id="u"></canvas>
     </div>
     <script src="./node_modules/three/build/three.js"></script>
     <!-- <script src="./node_modules/three/examples/js/postprocessing/EffectComposer.js"></script> -->
