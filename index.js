@@ -17,6 +17,8 @@ var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
+var SPECIMEN_NEAR_THRES = 0.5;
+var SPECIMEN_AVAILABLE_THRES = 0.045;
 var CAMERA_DISTANT_Z = 20;
 var CAMERA_CLOSE_Z = 15;
 var CAMERA_ZOOM_VEL = (CAMERA_DISTANT_Z - CAMERA_CLOSE_Z) / 20;
@@ -110,20 +112,58 @@ var stats;
 var specimens = {
     group$: new THREE.Group(),
     minAngle$: Infinity,
+    near$: false,
+    available$: false,
+    targetItem$: null,
 
     init$() {
         pivot.add(this.group$);
+        this.group$.layers.set(LAYER_EARTH);
         for (var i = 0; i < SPECIMENS_AMOUNT; ++i) {
             this.add$(randRad(), randRad());
         }
     },
 
     add$(phi, theta) {
-        this.group$.add(createPoint(phi, theta, '#73d13d'));
+        this.group$.add(createPoint(phi, theta, '#ffadd2'));
+    },
+
+    remove$(item) {
+        this.group$.remove(item);
+    },
+
+    count$() {
+        return this.group$.children.length;
     },
 
     update$() {
-        this.minAngle = this.calcMinAngle$();
+        this.minAngle$ = this.calcMinAngle$();
+        this.near$ = this.minAngle$ <= SPECIMEN_NEAR_THRES;
+        this.available$ = this.minAngle$ <= SPECIMEN_AVAILABLE_THRES;
+        this.updateTargetItem$();
+    },
+
+    updateTargetItem$() {
+        if (ufoState === UFO_STATES.takingSpec$ && this.available$ && !this.targetItem$) {
+            this.targetItem$ = this.getNearest$();
+            if (!this.targetItem$) return;
+            var vec = new THREE.Vector3();
+            vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
+            var pos = pivot.worldToLocal(vec);
+            this.targetItem$.position.set(pos.x, pos.y, pos.z);
+            console.log(vec);
+        }
+
+        if (this.targetItem$) {
+            const sph = new THREE.Spherical().setFromVector3(this.targetItem$.position);
+            if (sph.radius < RADIUS_UFO_POS) {
+                sph.radius += 0.02;
+                this.targetItem$.position.setFromSpherical(sph);
+            } else {
+                this.remove$(this.targetItem$);
+                this.targetItem$ = null;
+            }
+        }
     },
 
     calcMinAngle$() {
@@ -153,6 +193,8 @@ var wiggler = {
     targetEnd$: 0,
     pointerLength$: 0.3,
 
+    result$: null,
+
     initData$() {
         this.targetStart$ = 6;
         this.targetEnd$ = 8;
@@ -169,6 +211,9 @@ var wiggler = {
         switch (ufoState) {
             case UFO_STATES.raying$:
                 this.el$.style.opacity = 1;
+                if (!keys[32]) {
+                    this.result$ = wiggler.checkResult$();
+                }
                 break;
             case UFO_STATES.idle$:
             case UFO_STATES.rayFailed$:
@@ -182,6 +227,10 @@ var wiggler = {
             //         this.pointerEl.style.animationPlayStates = 'running';
             //     }
             //     break;
+        }
+
+        if (ufoState !== UFO_STATES.raying$) {
+            wiggler.result$ = null;
         }
     }
 }
@@ -567,7 +616,7 @@ function addMedia(phi, theta) {
 
 function createPoint(phi, theta, color) {
     // var point = new THREE.Object3D();
-    var geometry = new THREE.SphereGeometry(0.2, 16, 16);
+    var geometry = new THREE.SphereGeometry(0.1, 16, 16);
     var material = new THREE.MeshBasicMaterial({ color });
     var point = new THREE.Mesh(geometry, material);
     point.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
@@ -891,7 +940,7 @@ function animate() {
 function updateCamera() {
     const camPos = camera.position;
     const camRot = camera.rotation;
-    if (keys[32]) {
+    if (keys[32] && ufoState !== UFO_STATES.reducingRay$) {
         if (camPos.z > CAMERA_CLOSE_Z) {
             camPos.z = Math.max(camPos.z - CAMERA_ZOOM_VEL, CAMERA_CLOSE_Z);
             cameraState = CAMERA_STATES.zoomingIn$;
@@ -1019,24 +1068,25 @@ function updateUfoState() {
         case UFO_STATES.increasingRay$:
             if (keys[32]) {
                 if (ufoRay.scale.x >= 1) {
-                    ufoState = UFO_STATES.raying$;
-                    wiggler.initData$();
+                    if (specimens.available$) {
+                        ufoState = UFO_STATES.raying$;
+                        wiggler.initData$();
+                    } else {
+                        ufoState = UFO_STATES.rayFailed$;
+                    }
                 }
             } else {
                 ufoState = UFO_STATES.reducingRay$;
             }
             break;
         case UFO_STATES.reducingRay$:
-            if (keys[32]) { // FIXME:
-                ufoState = UFO_STATES.increasingRay$;
-            } else if (ufoRay.scale.x <= 0) {
+            if (ufoRay.scale.x <= 0) {
                 ufoState = UFO_STATES.idle$;
             }
             break;
         case UFO_STATES.raying$:
-            if (!keys[32]) {
-                var wigglerResult = wiggler.checkResult$();
-                ufoState = wigglerResult ? UFO_STATES.takingSpec$ : UFO_STATES.rayFailed$;
+            if (wiggler.result$ != null) {
+                ufoState = wiggler.result$ ? UFO_STATES.takingSpec$ : UFO_STATES.rayFailed$;
             }
             break;
         case UFO_STATES.takingSpec$:
@@ -1066,10 +1116,10 @@ function updateUfoActions() {
 
 function updateUfoIndicator() {
     const isRunning = ufoIndicatorAction.isRunning();
-    if (specimens.minAngle <= 0.5) {
+    if (specimens.near$) {
         !isRunning && ufoIndicatorAction.play();
         // TODO: quadratic
-        ufoIndicatorAction.timeScale = 0.55 / (0.05 + specimens.minAngle);
+        ufoIndicatorAction.timeScale = 0.55 / (0.05 + specimens.minAngle$);
     } else {
         isRunning && ufoIndicatorAction.stop();
     }
