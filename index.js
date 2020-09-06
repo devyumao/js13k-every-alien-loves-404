@@ -111,8 +111,8 @@ var colors = {
 };
 
 // DEBUG
-// var gui;
-// var guiConfigs;
+var gui;
+var guiConfigs;
 var stats;
 // DEBUG END
 
@@ -1241,79 +1241,79 @@ function updateUI() {
 
 // DEBUG
 function initDebug() {
-    // gui = new dat.GUI();
+    gui = new dat.GUI();
 
-    // var isNight = false;
+    var isNight = false;
 
-    // guiConfigs = Object.assign({}, colors);
-    // guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
-    // guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
-    // guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
-    // guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
+    guiConfigs = Object.assign({}, colors);
+    guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
+    guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
+    guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
+    guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
 
-    // gui.addColor(guiConfigs, 'Bg Top')
-    //     .onChange(function (val) {
-    //         document.body.setAttribute(
-    //             'style',
-    //             'background:linear-gradient(90deg, '
-    //                 + val + ' 0%, '
-    //                 + guiConfigs['Bg Bottom'] + ' 100%);'
-    //         );
-    //     });
-    // gui.addColor(guiConfigs, 'Bg Bottom')
-    //     .onChange(function (val) {
-    //         document.body.setAttribute(
-    //             'style',
-    //             'background:linear-gradient(90deg, '
-    //                 + guiConfigs['Bg Top'] + ' 0%, '
-    //                 + val + ' 100%);'
-    //         );
-    //     });
+    gui.addColor(guiConfigs, 'Bg Top')
+        .onChange(function (val) {
+            document.body.setAttribute(
+                'style',
+                'background:linear-gradient(90deg, '
+                    + val + ' 0%, '
+                    + guiConfigs['Bg Bottom'] + ' 100%);'
+            );
+        });
+    gui.addColor(guiConfigs, 'Bg Bottom')
+        .onChange(function (val) {
+            document.body.setAttribute(
+                'style',
+                'background:linear-gradient(90deg, '
+                    + guiConfigs['Bg Top'] + ' 0%, '
+                    + val + ' 100%);'
+            );
+        });
 
-    // gui.addColor(guiConfigs, 'Ambient')
-    //     .onChange(function (val) {
-    //         lights.ambient.color.set(val);
-    //     });
-    // gui.addColor(guiConfigs, 'Key')
-    //     .onChange(function (val) {
-    //         lights.key.color.set(val);
-    //     });
-    // gui.addColor(guiConfigs, 'Sky A')
-    //     .onChange(function (val) {
-    //         lights.fillTopEarth.color.set(val);
-    //     });
-    // gui.addColor(guiConfigs, 'Sky B')
-    //     .onChange(function (val) {
-    //         lights.fillBottomEarth.color.set(val);
-    //     });
+    gui.addColor(guiConfigs, 'Ambient')
+        .onChange(function (val) {
+            lights.ambient.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Key')
+        .onChange(function (val) {
+            lights.key.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Sky A')
+        .onChange(function (val) {
+            lights.fillTopEarth.color.set(val);
+        });
+    gui.addColor(guiConfigs, 'Sky B')
+        .onChange(function (val) {
+            lights.fillBottomEarth.color.set(val);
+        });
 
-    // [0, 1, 2, 3].forEach(function (x) {
-    //     gui.addColor(guiConfigs, 'Ocean' + x)
-    //         .onChange(function (val) {
-    //             colors.OceanLevels[x] = val;
+    [0, 1, 2, 3].forEach(function (x) {
+        gui.addColor(guiConfigs, 'Ocean' + x)
+            .onChange(function (val) {
+                colors.OceanLevels[x] = val;
 
-    //             landSurface.forEach(function (i, id) {
-    //                 earth.geometry.faces[id].color = new THREE.Color(
-    //                     i >= 1
-    //                         ? colors.OceanLevels[0]
-    //                         : colors.OceanLevels[-i + 1]
-    //                 );
-    //             });
-    //             earth.geometry.colorsNeedUpdate = true;
-    //             earth.geometry.elementsNeedUpdate = true;
-    //         });
-    // });
+                landSurface.forEach(function (i, id) {
+                    earth.geometry.faces[id].color = new THREE.Color(
+                        i >= 1
+                            ? colors.OceanLevels[0]
+                            : colors.OceanLevels[-i + 1]
+                    );
+                });
+                earth.geometry.colorsNeedUpdate = true;
+                earth.geometry.elementsNeedUpdate = true;
+            });
+    });
 
-    // gui.addColor(guiConfigs, 'Land')
-    //     .onChange(function (val) {
-    //         land.material.color.set(val);
-    //     });
+    gui.addColor(guiConfigs, 'Land')
+        .onChange(function (val) {
+            land.material.color.set(val);
+        });
 
-    // gui.add(guiConfigs, 'Change')
-    //     .onChange(function () {
-    //         isNight = !isNight;
-    //         setTime(isNight);
-    //     });
+    gui.add(guiConfigs, 'Change')
+        .onChange(function () {
+            isNight = !isNight;
+            setTime(isNight);
+        });
 
     // gui.hide();
 
