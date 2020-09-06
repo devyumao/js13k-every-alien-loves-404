@@ -59,7 +59,8 @@ var baseAxisY = new THREE.Vector3(0, 1, 0);
 var renderer, scene, sceneRTT, camera, cameraRTT, lights;
 
 var rtTexture, rtMesh;
-var rttDprRatio = Math.max(2, Math.round(H / 150));
+var rttDprRatio = Math.max(2, Math.round(H / 250));
+console.log(rttDprRatio);
 window.rttOn = true;
 
 var uiCanvas, uiCtx;
