@@ -174,10 +174,12 @@ function init() {
 
     offCtx.startRendering()
         .then(function (renderedBuffer) {
-            audio._audioBg = audio.ctx.createBufferSource();
-            audio._audioBg.buffer = renderedBuffer;
+            var audioSrc = audio.ctx.createBufferSource();
+            audio._audioBg = audioSrc;
+            audioSrc.buffer = renderedBuffer;
+            audioSrc.connect(audio.ctx.destination);
+            audioSrc.loop = true;
 
-            audio._audioBg.connect(audio.ctx.destination);
             audio.isReady = true;
         })
         .catch(function (e) {
