@@ -68,11 +68,10 @@ var comet;
 var ufo = new THREE.Group();
 var ufoRay = new THREE.Group();
 var ufoIndicator;
-var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
-var cameraMixer, ufoMixer, ufoIndicatorMixer, ufoRay0Mixer, ufoRay1Mixer;
-var cameraShakeAction, ufoIdleAction, ufoIndicatorAction, ufoRay0Action, ufoRay1Action;
+var cameraMixer, ufoMixer, ufoIndicatorMixer;
+var cameraShakeAction, ufoIdleAction, ufoIndicatorAction;
 
 var track = new THREE.Group();
 var pathLength = 0;
@@ -117,6 +116,43 @@ var colors = {
 var stats;
 // DEBUG END
 
+
+var specimens = {
+    group: new THREE.Group(),
+    minAngle: Infinity,
+
+    init() {
+        pivot.add(this.group);
+        for (var i = 0; i < SPECIMENS_AMOUNT; ++i) {
+            this.add(randRad(), randRad());
+        }
+    },
+
+    add(phi, theta) {
+        this.group.add(createPoint(phi, theta, '#73d13d'));
+    },
+
+    update() {
+        this.minAngle = this.calcMinAngle();
+    },
+
+    calcMinAngle() {
+        return this.group.children.reduce(function (min, item) {
+            var angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
+            item.userData.angle = angle;
+            return Math.min(min, angle);
+        }, Infinity);
+    },
+
+    getNearest() {
+        return this.group.children.reduce(function (a, b) {
+            if (!a || b.userData.angle < a.userData.angle) return b;
+            return a;
+        }, null);
+    }
+};
+
+
 var wiggler = {
     el: document.getElementById('w'),
     targetEl: document.getElementById('wt'),
@@ -159,6 +195,7 @@ var wiggler = {
         }
     }
 }
+
 
 var failMsg = {
     el: document.getElementById('f'),
@@ -204,10 +241,10 @@ function main() {
         createSky();
         createComet();
 
-        pivot.add(specimenGroup, mediaGroup, track);
+        pivot.add(mediaGroup, track);
         scene.add(pivot);
 
-        initSpecimenPoints();
+        specimens.init();
         // addMediaPoint(2, 0.5);
 
         initRenderer();
@@ -525,16 +562,6 @@ function initUfoIndicatorMixer() {
 //     return { mixer, action };
 // }
 
-function initSpecimenPoints() {
-    for (var i = 0; i < SPECIMENS_AMOUNT; ++i) {
-        addSpecimenPoint(randRad(), randRad());
-    }
-}
-
-function addSpecimenPoint(phi, theta) {
-    specimenGroup.add(createPoint(phi, theta, 0x73d13d));
-}
-
 function addMedia(phi, theta) {
     var media = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 16, 16),
@@ -550,7 +577,7 @@ function addMedia(phi, theta) {
 
 function createPoint(phi, theta, color) {
     // var point = new THREE.Object3D();
-    var geometry = new THREE.SphereGeometry(0.1, 16, 16);
+    var geometry = new THREE.SphereGeometry(0.2, 16, 16);
     var material = new THREE.MeshBasicMaterial({ color });
     var point = new THREE.Mesh(geometry, material);
     point.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
@@ -565,14 +592,6 @@ function addPointToTrack() {
     if (track.children.length > MAX_TRACK_POINTS) {
         track.remove(track.children[0]);
     }
-}
-
-function calcMinSpecimenAngle() {
-    return specimenGroup.children.reduce(function (min, item) {
-        var angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
-        item.userData.angle = angle;
-        return Math.min(min, angle);
-    }, Infinity);
 }
 
 function createLand() {
@@ -749,13 +768,6 @@ function createComet() {
     // comet.birth = Date.now();
 }
 
-function getNearestSpecimen() {
-    return specimenGroup.children.reduce(function (a, b) {
-        if (!a || b.userData.angle < a.userData.angle) return b;
-        return a;
-    }, null);
-}
-
 function createClouds() {
     clouds = new THREE.Group();
     pivot.add(clouds);
@@ -840,6 +852,8 @@ function animate() {
 
     updatePathLength();
     updateTrack();
+
+    specimens.update();
     updateMedium();
 
     updateComet();
@@ -1060,12 +1074,11 @@ function updateUfoActions() {
 }
 
 function updateUfoIndicator() {
-    var minSpecimenAngle = calcMinSpecimenAngle();
     const isRunning = ufoIndicatorAction.isRunning();
-    if (minSpecimenAngle <= 0.5) {
+    if (specimens.minAngle <= 0.5) {
         !isRunning && ufoIndicatorAction.play();
         // TODO: quadratic
-        ufoIndicatorAction.timeScale = 0.55 / (0.05 + minSpecimenAngle);
+        ufoIndicatorAction.timeScale = 0.55 / (0.05 + specimens.minAngle);
     } else {
         isRunning && ufoIndicatorAction.stop();
     }
