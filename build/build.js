@@ -68,7 +68,10 @@ function buildHtml() {
 }
 
 function buildJs() {
-    const indexSrc = fs.readFileSync('./index.js', 'utf-8');
+    let indexSrc = fs.readFileSync('./index.js', 'utf-8');
+    let audioSrc = fs.readFileSync('./audio.js', 'utf-8');
+
+    indexSrc = indexSrc.replace('// $$$_INJECT_AUDIO_$$$', audioSrc);
 
     // Remove debug
     let indexContent = '';

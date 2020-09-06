@@ -110,6 +110,8 @@ var colors = {
     'Change': function () {}
 };
 
+// $$$_INJECT_AUDIO_$$$
+
 // DEBUG
 var gui;
 var guiConfigs;
@@ -829,6 +831,7 @@ function onWindowResize() {
 function initControl() {
     document.addEventListener('keydown', function (e) {
         keys[e.keyCode] = true;
+        audio.playBg();
     });
     document.addEventListener('keyup', function (e) {
         keys[e.keyCode] = false;
