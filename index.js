@@ -72,7 +72,7 @@ var specimenGroup = new THREE.Group();
 var mediaGroup = new THREE.Group();
 
 var cameraMixer, ufoMixer, ufoIndicatorMixer, ufoRay0Mixer, ufoRay1Mixer;
-var cameraZoomAction, ufoIdleAction, ufoIndicatorAction, ufoRay0Action, ufoRay1Action;
+var cameraShakeAction, ufoIdleAction, ufoIndicatorAction, ufoRay0Action, ufoRay1Action;
 
 var track = new THREE.Group();
 var pathLength = 0;
@@ -179,8 +179,7 @@ function initScene() {
     camera.position.z = 20;
     camera.layers.enable(LAYER_EARTH);
 
-    cameraMixer = new THREE.AnimationMixer(camera);
-    initCameraZoomAction();
+    initCameraMixer();
 
     var bg = new THREE.PlaneBufferGeometry(500, 200);
     var bgMat = new THREE.ShaderMaterial({
@@ -233,20 +232,21 @@ function initScene() {
     sceneRTT.add(rtMesh);
 }
 
-function initCameraZoomAction() {
-    // TODO: refactor
-    // var pos = camera.position;
-    var posTrack = new THREE.VectorKeyframeTrack(
+function initCameraMixer() {
+    cameraMixer = new THREE.AnimationMixer(camera);
+    var rotationTrack = new THREE.VectorKeyframeTrack(
         '.position',
         [0, 1],
         [
-            0, 0, 15,
-            0, 0, 15.4
+            0, 0, 20,
+            1, -1, 20
         ]
     );
-    var clip = new THREE.AnimationClip('CameraZoom', 0.2, [posTrack]);
-    cameraZoomAction = cameraMixer.clipAction(clip);
-    cameraZoomAction.loop = THREE.LoopPingPong;
+    var clip = new THREE.AnimationClip('CameraShake', 0.5, [rotationTrack]);
+    cameraShakeAction = cameraMixer.clipAction(clip);
+    // cameraShakeAction.repetitions = 10;
+    // cameraShakeAction.loop = THREE.LoopPingPong;
+    // cameraShakeAction.play();
 }
 
 function initLight() {
