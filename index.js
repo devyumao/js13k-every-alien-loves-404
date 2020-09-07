@@ -60,7 +60,6 @@ var renderer, scene, sceneRTT, camera, cameraRTT, lights;
 
 var rtTexture, rtMesh;
 var rttDprRatio = Math.max(2, Math.round(H / 250));
-console.log(rttDprRatio);
 window.rttOn = true;
 
 var uiCanvas, uiCtx;
@@ -76,7 +75,7 @@ var clouds, cloudsSurface;
 var land, landSurface;
 var comet;
 var ufo = new THREE.Group();
-var ufoRay = new THREE.Group();
+var ufoRay
 var ufoIndicator;
 var mediaGroup = new THREE.Group();
 
@@ -559,21 +558,13 @@ function createUfo() {
     // ufoIndicator.layers.enable(LAYER_BLOOM);
     ufo.add(ufoIndicator);
 
-    ufoRay.position.y = -0.35;
-    ufoRay.scale.set(0, 0, 0);
-    ufo.add(ufoRay);
-
-    var ufoRay0 = new THREE.Mesh(
+    ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.45, 0.8, 32),
         new THREE.MeshToonMaterial({ color: '#faad14', transparent: true, opacity: 0.5 })
     );
-    ufoRay.add(ufoRay0);
-
-    // var ufoRay1 = new THREE.Mesh(
-    //     new THREE.ConeGeometry(0.45, 0.8, 32),
-    //     new THREE.MeshToonMaterial({ color: '#bfbfbf', transparent: true, opacity: 0 })
-    // );
-    // ufoRay.add(ufoRay1);
+    ufoRay.position.y = -0.35;
+    ufoRay.scale.set(0, 0, 0);
+    ufo.add(ufoRay);
 
     ufo.position.set(...ufoNormalPosition.toArray());
     ufo.rotation.x = 1;
@@ -611,30 +602,6 @@ function initUfoIndicatorMixer() {
     ufoIndicatorAction = ufoIndicatorMixer.clipAction(clip);
     ufoIndicatorAction.loop = THREE.LoopPingPong;
 }
-
-// function initUfoRayMixer() {
-//     ufoRay0Mixer = new THREE.AnimationMixer(ufoRay);
-//     var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 0.6]);
-//     var clip = new THREE.AnimationClip('UfoRay0', 0.8, [opacityTrack]);
-//     ufoRay0Action = ufoRay0Mixer.clipAction(clip);
-//     ufoRay0Action.loop = THREE.LoopPingPong;
-// }
-
-// function initUfoRayMixer1() {
-//     ufoRay1Mixer = new THREE.AnimationMixer(ufoRay.children[1]);
-//     var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0.6, 0]);
-//     var clip = new THREE.AnimationClip('UfoRay1', 0.8, [opacityTrack]);
-//     ufoRay1Action = ufoRay1Mixer.clipAction(clip);
-//     ufoRay1Action.loop = THREE.LoopPingPong;
-// }
-
-// function initMixer({ object, clipName, duration, tracks }) {
-//     var mixer = new THREE.AnimationMixer(object);
-//     var clip = new THREE.AnimationClip(clipName, duration, tracks);
-//     var action = mixer.clipAction(clip);
-//     action.loop = THREE.LoopPingPong;
-//     return { mixer, action };
-// }
 
 function addMedia(phi, theta) {
     var media = new THREE.Mesh(
@@ -959,9 +926,6 @@ function animate() {
 
         updateBeforeGame(delta);
     }
-
-    // ufoRay0Mixer.update(delta);
-    // ufoRay1Mixer.update(delta);
 
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
