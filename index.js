@@ -47,7 +47,7 @@ var GAME_STATES = {
     inGame$: 2,
     gameOver$: 3
 };
-var BEFORE_GAME_ANIMATION_DURATION = 3;
+var BEFORE_GAME_ANIMATION_DURATION = 0;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -1083,6 +1083,8 @@ function updateGameState() {
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
     }
     else {
+        ufo.position.set(...ufoNormalPosition.toArray());
+        camera.position.set(...cameraNormalPosition.toArray());
         updateCanvas();
     }
 }
