@@ -63,7 +63,6 @@ var rttDprRatio = Math.max(2, Math.round(H / 250));
 window.rttOn = true;
 
 var uiCanvas, uiCtx;
-var popups, popupsContainer;
 
 // var composer;
 
@@ -76,7 +75,6 @@ var land, landSurface;
 var comet;
 var ufo = new THREE.Group();
 var ufoRay, ufoIndicator, ufoLaser;
-var mediaGroup = new THREE.Group();
 
 var cameraMixer, ufoMixer, ufoIndicatorMixer, ufoRayMixer;
 var cameraShakeAction, ufoIdleAction, ufoIndicatorAction, ufoRayAction;
@@ -197,6 +195,120 @@ var specimens = {
 };
 
 
+var medium = {
+    group$: new THREE.Group(),
+    minAngle$: Infinity,
+    targetItem$: null,
+    popupsEl$: document.getElementById('p'),
+    lastUpdated$: Date.now(),
+
+    init$() {
+        pivot.add(this.group$);
+    },
+
+    update$() {
+        if (track.children.length <= MAX_MEDIUM) {
+            var key = Math.ceil(pathLength / 15);
+            if (!trackMediaMap[key]) {
+                var point = track.children[0];
+                if (point) {
+                    var sph = new THREE.Spherical(RADIUS_EARTH);
+                    sph.setFromVector3(point.position);
+                    sph.phi += THREE.MathUtils.randFloatSpread(0.3);
+                    sph.theta += THREE.MathUtils.randFloatSpread(0.3);
+                    this.add$(sph.phi, sph.theta);
+                    track.remove(point);
+                }
+            }
+            trackMediaMap[key] = true;
+        }
+
+        this.updatePopups$();
+    },
+
+    updatePopups$() {
+        var { popupsEl$ } = this;
+        for (var i = 0; i < popupsEl$.children.length; ++i) {
+            popupsEl$.children[i]._using = false;
+        }
+
+        var updateNumber = Date.now() - this.lastUpdated$ > 1e3;
+        if (updateNumber) {
+            this.lastUpdated$ = Date.now();
+        }
+
+        this.group$.children.forEach(function (media) {
+            var pos = worldToScreen(media);
+            // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
+            var popup = media._popup;
+            if (!popup) {
+                popup = document.createElement('div');
+                popup.setAttribute('class', 'p');
+                popupsEl$.appendChild(popup);
+                media._popup = popup;
+                popup._media = media;
+            }
+
+            var width = popup.clientWidth;
+            var height = popup.clientHeight;
+
+            var style = popup.style;
+            style.left = Math.round(pos.x - width / 2) + 'px';
+            style.top = Math.round(pos.y - height) + 'px';
+            style.opacity = pos.z < 0 ? 0.2 : 1;
+
+            if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
+                // TODO: check media is not removed from mediaGroup
+    
+                if (media._viewed >= 1e6) {
+                    const text = Math.round(media._viewed / 1e5) / 10 + 'M';
+                    popup.setAttribute('class', 'p r');
+                    popup.innerText = text + ' Viewed 🔥🔥🔥';
+                }
+                else if (media._viewed >= 1e3) {
+                    const text = Math.round(media._viewed / 100) / 10 + 'K';
+                    popup.setAttribute('class', 'p y');
+                    popup.innerText = text + ' Viewed 🔥';
+                }
+                else {
+                    popup.innerText = media._viewed + ' Viewed';
+                }
+                if (Math.random() > 0.95) {
+                    // TODO: not so randomly
+                    media._viewed += Math.ceil(Math.random() * 2e6);
+                }
+                else {
+                    media._viewed += Math.ceil(Math.random() * media._maxV);
+                }
+            }
+
+            popup._using = true;
+        });
+
+        for (var j = 0; j < popupsEl$.children.length; ++j) {
+            var child = popupsEl$.children[j];
+            if (!child._using) {
+                popupsEl$.removeChild(child);
+                child._media._popup = null;
+            }
+        }
+    },
+
+    add$(phi, theta) {
+        var media = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 16, 16),
+            new THREE.MeshBasicMaterial({ color: '#ff4d4f' })
+        );
+        media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
+
+        media._viewed = Math.ceil(Math.random() * 10);
+        media._maxV = Math.ceil(Math.random() * 1e3);
+
+        medium.group$.add(media);
+    }
+};
+
+
 var wiggler = {
     el$: document.getElementById('w'),
     targetEl$: document.getElementById('wt'),
@@ -283,7 +395,6 @@ function main() {
         initDebug();
         // DEBUG END
 
-        initUI();
         initScene();
         initLight();
 
@@ -294,11 +405,11 @@ function main() {
         createSky();
         createComet();
 
-        pivot.add(mediaGroup, track);
+        pivot.add(track);
         scene.add(pivot);
 
         specimens.init$();
-        // addMediaPoint(2, 0.5);
+        medium.init$();
 
         initRenderer();
 
@@ -324,23 +435,18 @@ function loadResources() {
     });
 }
 
-function initUI() {
-    popupsContainer = document.getElementById('p');
-    popups = [];
-}
-
 function initScene() {
     // ====== Main ======
     scene = new THREE.Scene();
     sceneRTT = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 1e3);
     // camera.position.z = CAMERA_DISTANT_Z;
     camera.layers.enable(LAYER_EARTH);
 
     initCameraMixer();
 
-    var bg = new THREE.PlaneBufferGeometry(5000, 2000);
+    var bg = new THREE.PlaneBufferGeometry(5e3, 2e3);
     var bgMat = new THREE.ShaderMaterial({
         uniforms: {
             t: {
@@ -367,8 +473,8 @@ function initScene() {
         width / 2,
         height / 2,
         height / - 2,
-        -10000,
-        10000
+        -1e4,
+        1e4
     );
     cameraRTT.position.z = 100;
 
@@ -557,8 +663,8 @@ function createUfo() {
         new THREE.MeshToonMaterial({ color: '#dd4491', transparent: true, opacity: 0.5 })
     );
     ufoLaser.position.y = -0.4;
-    // ufoLaser.scale.set(0.5, 1, 0.5);
-    // ufo.add(ufoLaser);
+    ufoLaser.scale.set(0, 0, 0);
+    ufo.add(ufoLaser);
 
     ufo.position.set(...ufoNormalPosition.toArray());
     ufo.rotation.x = 1;
@@ -600,28 +706,15 @@ function initUfoIndicatorMixer() {
 function initUfoRayMixer() {
     ufoRayMixer = new THREE.AnimationMixer(ufoRay);
     ufoRayAction = ufoRayMixer.clipAction(
-        new THREE.AnimationClip('UfoRay', 0.8, [
+        new THREE.AnimationClip('UfoRay', 1.2, [
             new THREE.VectorKeyframeTrack(
                 '.scale',
-                [0, 0.8],
-                [1, 1, 1, 0.4, 1, 0.4]
+                [0, 1.2],
+                [1, 1, 1, 0.5, 1, 0.5]
             )
         ])
     );
     ufoRayAction.loop = THREE.LoopPingPong;
-}
-
-function addMedia(phi, theta) {
-    var media = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 16, 16),
-        new THREE.MeshBasicMaterial({ color: '#ff4d4f' })
-    );
-    media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
-
-    media._viewed = Math.ceil(Math.random() * 10);
-    media._maxV = Math.ceil(Math.random() * 1000);
-
-    mediaGroup.add(media);
 }
 
 function createPoint(phi, theta, color) {
@@ -741,7 +834,7 @@ function createSky() {
 
     var R = 80;
     var r = 2.5;
-    for (var i = 0; i < 2000; ++i) {
+    for (var i = 0; i < 2e3; ++i) {
         var mat = new THREE.MeshBasicMaterial({
             color: '#999',
             opacity: Math.random(),
@@ -877,7 +970,7 @@ function onWindowResize() {
 function initControl() {
     document.addEventListener('keydown', function (e) {
         keys[e.keyCode] = true;
-        audio.playBg();
+        // audio.playBg();
 
         if (gameState === GAME_STATES.welcome$) {
             gameState = GAME_STATES.beforeGame$;
@@ -913,11 +1006,9 @@ function animate() {
         updateTrack();
 
         specimens.update$();
-        updateMedium();
+        medium.update$();
 
         updateComet();
-
-        updateUI();
 
         wiggler.update$();
         failMsg.update$();
@@ -1094,7 +1185,7 @@ function updateGameState() {
         setTimeout(function () {
             gameState = GAME_STATES.inGame$;
             updateGameState();
-        }, BEFORE_GAME_ANIMATION_DURATION * 1000);
+        }, BEFORE_GAME_ANIMATION_DURATION * 1e3);
     }
     else {
         ufo.position.set(...ufoNormalPosition.toArray());
@@ -1245,23 +1336,6 @@ function updateTrack() {
     }
 }
 
-function updateMedium() {
-    if (track.children.length > MAX_MEDIUM) return;
-    var key = Math.ceil(pathLength / 15);
-    if (!trackMediaMap[key]) {
-        var point = track.children[0];
-        if (point) {
-            var sph = new THREE.Spherical(RADIUS_EARTH);
-            sph.setFromVector3(point.position);
-            sph.phi += THREE.MathUtils.randFloatSpread(0.3);
-            sph.theta += THREE.MathUtils.randFloatSpread(0.3);
-            addMedia(sph.phi, sph.theta);
-            track.remove(point);
-        }
-    }
-    trackMediaMap[key] = true;
-}
-
 function updateComet() {
     // if (Date.now() > comet.birth + comet.delay) {
     //     console.log('fly');
@@ -1276,74 +1350,6 @@ function updateComet() {
     //         createComet();
     //     }
     // }
-}
-
-var lastUpdateMedia = Date.now();
-function updateUI() {
-    for (var i = 0; i < popupsContainer.children.length; ++i) {
-        popupsContainer.children[i]._using = false;
-    }
-
-    var updateNumber = Date.now() - lastUpdateMedia > 1000;
-    if (updateNumber) {
-        lastUpdateMedia = Date.now();
-    }
-
-    mediaGroup.children.forEach(function (media) {
-        var pos = worldToScreen(media);
-        // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
-        var popup = media._popup;
-        if (!popup) {
-            popup = document.createElement('div');
-            popup.setAttribute('class', 'p');
-            popupsContainer.appendChild(popup);
-            media._popup = popup;
-            popup._media = media;
-        }
-
-        var width = popup.clientWidth;
-        var height = popup.clientHeight;
-
-        var style = popup.style;
-        style.left = Math.round(pos.x - width / 2) + 'px';
-        style.top = Math.round(pos.y - height) + 'px';
-        style.opacity = pos.z < 0 ? 0.2 : 1;
-
-        if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
-            // TODO: check media is not removed from mediaGroup
-
-            if (media._viewed >= 1e6) {
-                const text = Math.round(media._viewed / 1e5) / 10 + 'M';
-                popup.setAttribute('class', 'p r');
-                popup.innerText = text + ' Viewed 🔥🔥🔥';
-            }
-            else if (media._viewed >= 1e3) {
-                const text = Math.round(media._viewed / 100) / 10 + 'K';
-                popup.setAttribute('class', 'p y');
-                popup.innerText = text + ' Viewed 🔥';
-            }
-            else {
-                popup.innerText = media._viewed + ' Viewed';
-            }
-            if (Math.random() > 0.95) {
-                // TODO: not so randomly
-                media._viewed += Math.ceil(Math.random() * 2e6);
-            }
-            else {
-                media._viewed += Math.ceil(Math.random() * media._maxV);
-            }
-        }
-
-        popup._using = true;
-    });
-
-    for (var i = 0; i < popupsContainer.children.length; ++i) {
-        var child = popupsContainer.children[i];
-        if (!child._using) {
-            popupsContainer.removeChild(child);
-            child._media._popup = null;
-        }
-    }
 }
 
 function updateCanvas() {
