@@ -47,7 +47,7 @@ var GAME_STATES = {
     inGame$: 2,
     gameOver$: 3
 };
-var BEFORE_GAME_ANIMATION_DURATION = 0;
+var BEFORE_GAME_ANIMATION_DURATION = 0; // FIXME: temp
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -75,11 +75,11 @@ var clouds, cloudsSurface;
 var land, landSurface;
 var comet;
 var ufo = new THREE.Group();
-var ufoRay, ufoIndicator;
+var ufoRay, ufoIndicator, ufoLaser;
 var mediaGroup = new THREE.Group();
 
-var cameraMixer, ufoMixer, ufoIndicatorMixer;
-var cameraShakeAction, ufoIdleAction, ufoIndicatorAction;
+var cameraMixer, ufoMixer, ufoIndicatorMixer, ufoRayMixer;
+var cameraShakeAction, ufoIdleAction, ufoIndicatorAction, ufoRayAction;
 
 var track = new THREE.Group();
 var pathLength = 0;
@@ -301,7 +301,6 @@ function main() {
         // addMediaPoint(2, 0.5);
 
         initRenderer();
-        // initEffects();
 
         clock = new THREE.Clock();
 
@@ -402,7 +401,7 @@ function initCameraMixer() {
             1, -1, 20
         ]
     );
-    var clip = new THREE.AnimationClip('CameraShake', 0.5, [rotationTrack]);
+    var clip = new THREE.AnimationClip('CameraShake', 1, [rotationTrack]);
     cameraShakeAction = cameraMixer.clipAction(clip);
     // cameraShakeAction.repetitions = 10;
     // cameraShakeAction.loop = THREE.LoopPingPong;
@@ -495,19 +494,6 @@ function initRenderer() {
     uiCtx = uiCanvas.getContext('2d');
 }
 
-// function initEffects() {
-//     var renderScene = new THREE.RenderPass(scene, camera);
-//     var bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-//     bloomPass.threshold = 0.21;
-//     bloomPass.strength = 1.2;
-//     bloomPass.radius = 0.55;
-//     bloomPass.renderToScreen = true;
-//     composer = new THREE.Effectcomposer(renderer);
-//     composer.setSize(window.innerWidth, window.innerHeight);
-//     composer.addPass(renderScene);
-//     composer.addPass(bloomPass);
-// }
-
 function createEarth() {
     var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 4);
     earthSurface = [];
@@ -566,6 +552,14 @@ function createUfo() {
     ufoRay.scale.set(0, 0, 0);
     ufo.add(ufoRay);
 
+    ufoLaser = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.15, 0.15, 0.76, 32),
+        new THREE.MeshToonMaterial({ color: '#dd4491', transparent: true, opacity: 0.5 })
+    );
+    ufoLaser.position.y = -0.4;
+    // ufoLaser.scale.set(0.5, 1, 0.5);
+    // ufo.add(ufoLaser);
+
     ufo.position.set(...ufoNormalPosition.toArray());
     ufo.rotation.x = 1;
     ufo.layers.set(LAYER_DEFAULT);
@@ -575,17 +569,16 @@ function createUfo() {
 
     initUfoMixer();
     initUfoIndicatorMixer();
-    // initUfoRayMixer();
-    // initUfoRayMixer1();
+    initUfoRayMixer();
 }
 
 function initUfoMixer() {
     ufoMixer = new THREE.AnimationMixer(ufo);
     var pos1 = ufo.position;
-    var pos2 = getVectorFromSphCoord(RADIUS_UFO_POS + 0.35, UFO_PHI, UFO_THETA);
+    var pos2 = getVectorFromSphCoord(RADIUS_UFO_POS + 0.28, UFO_PHI, UFO_THETA);
     var posTrack = new THREE.VectorKeyframeTrack(
         '.position',
-        [0, 1],
+        [0, 0.8],
         [pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z],
         // THREE.InterpolateSmooth
     );
@@ -602,6 +595,20 @@ function initUfoIndicatorMixer() {
     ufoIndicatorAction = ufoIndicatorMixer.clipAction(clip);
     ufoIndicatorAction.loop = THREE.LoopPingPong;
     ufoIndicatorAction.play();
+}
+
+function initUfoRayMixer() {
+    ufoRayMixer = new THREE.AnimationMixer(ufoRay);
+    ufoRayAction = ufoRayMixer.clipAction(
+        new THREE.AnimationClip('UfoRay', 0.8, [
+            new THREE.VectorKeyframeTrack(
+                '.scale',
+                [0, 0.8],
+                [1, 1, 1, 0.4, 1, 0.4]
+            )
+        ])
+    );
+    ufoRayAction.loop = THREE.LoopPingPong;
 }
 
 function addMedia(phi, theta) {
@@ -899,8 +906,6 @@ function animate() {
         updateVelocity();
         updateMovement();
 
-        updateEarth(delta * 1e3);
-        updateClouds(delta * 1e3);
         updateUfo();
         updateLight(delta * 1e3);
 
@@ -919,17 +924,20 @@ function animate() {
 
         cameraMixer.update(delta);
         ufoMixer.update(delta);
+        ufoRayMixer.update(delta);
     }
     else if (gameState === GAME_STATES.beforeGame$) {
         updateBeforeGame(delta);
     }
 
+    updateEarth(delta * 1e3);
+    updateClouds(delta * 1e3);
+    ufoIndicatorMixer.update(delta);
+
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
         renderer.clear();
     }
-
-    ufoIndicatorMixer.update(delta);
 
     // camera.layers.set(LAYER_BLOOM);
     // composer.render();
@@ -1108,7 +1116,7 @@ function updateUfo() {
     updateUfoRotation();
     updateUfoActions();
     updateUfoIndicator();
-    updateRay();
+    updateUfoRay();
 }
 
 function updateUfoState() {
@@ -1127,7 +1135,7 @@ function updateUfoState() {
             break;
         case UFO_STATES.increasingRay$:
             if (keys[32]) {
-                if (ufoRay.scale.x >= 1) {
+                if (ufoRay.scale.y >= 1) {
                     if (specimens.available$) {
                         ufoState = UFO_STATES.raying$;
                         wiggler.initData$();
@@ -1140,7 +1148,7 @@ function updateUfoState() {
             }
             break;
         case UFO_STATES.reducingRay$:
-            if (ufoRay.scale.x <= 0) {
+            if (ufoRay.scale.y <= 0) {
                 ufoState = UFO_STATES.idle$;
             }
             break;
@@ -1150,7 +1158,7 @@ function updateUfoState() {
             }
             break;
         case UFO_STATES.takingSpec$:
-            if (ufoRay.scale.x <= 0) {
+            if (ufoRay.scale.y <= 0) {
                 ufoState = UFO_STATES.idle$;
             }
             break;
@@ -1185,35 +1193,37 @@ function updateUfoIndicator() {
     }
 }
 
-function updateRay() {
+function updateUfoRay() {
     var scale;
     switch (ufoState) {
         case UFO_STATES.increasingRay$:
-            scale = Math.min(ufoRay.scale.x + 0.03, 1);
+            scale = Math.min(ufoRay.scale.y + 0.03, 1);
             ufoRay.scale.set(scale, scale, scale);
             // !cameraZoomAction.isRunning() && cameraZoomAction.play();
             break;
         case UFO_STATES.reducingRay$:
-            scale = Math.max(ufoRay.scale.x - 0.03, 0);
+            scale = Math.max(ufoRay.scale.y - 0.03, 0);
             ufoRay.scale.set(scale, scale, scale);
             break;
-        // case UFO_STATES.raying$:
-        //     if (!ufoRay0Action.isRunning()) {
-        //         ufoRay0Action.play();
-        //         ufoRay1Action.play();
-        //     }
-        //     break;
+        case UFO_STATES.raying$:
+            if (!ufoRayAction.isRunning()) {
+                ufoRayAction.play();
+            }
+            break;
         case UFO_STATES.takingSpec$:
-            // if (ufoRay0Action.isRunning()) {
-            //     ufoRay0Action.stop();
-            //     ufoRay1Action.stop();
-            //     // ufoRay.children[0].material.color = new THREE.Color('#73d13d');
-            //     ufoRay.children[0].material.opacity = 0.5;
-            //     ufoRay.children[1].material.opacity = 0;
-            // }
-            scale = Math.max(ufoRay.scale.x - 0.02, 0);
+            pauseAction();
+            scale = Math.max(ufoRay.scale.y - 0.02, 0);
             ufoRay.scale.set(scale, scale, scale);
             break;
+        case UFO_STATES.rayFailed$:
+            pauseAction();
+            break;
+    }
+
+    function pauseAction() {
+        if (ufoRayAction.isRunning()) {
+            ufoRayAction.paused = true;
+        }
     }
 }
 
