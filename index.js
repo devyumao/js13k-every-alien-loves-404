@@ -75,8 +75,7 @@ var clouds, cloudsSurface;
 var land, landSurface;
 var comet;
 var ufo = new THREE.Group();
-var ufoRay
-var ufoIndicator;
+var ufoRay, ufoIndicator;
 var mediaGroup = new THREE.Group();
 
 var cameraMixer, ufoMixer, ufoIndicatorMixer;
@@ -602,6 +601,7 @@ function initUfoIndicatorMixer() {
     var clip = new THREE.AnimationClip('UfoIndicator', 1, [opacityTrack]);
     ufoIndicatorAction = ufoIndicatorMixer.clipAction(clip);
     ufoIndicatorAction.loop = THREE.LoopPingPong;
+    ufoIndicatorAction.play();
 }
 
 function addMedia(phi, theta) {
@@ -875,12 +875,6 @@ function initControl() {
         if (gameState === GAME_STATES.welcome$) {
             gameState = GAME_STATES.beforeGame$;
             updateGameState();
-
-            setTimeout(function () {
-                // camera.lookAt(ufo.position);
-                gameState = GAME_STATES.inGame$;
-                updateGameState();
-            }, BEFORE_GAME_ANIMATION_DURATION * 1000);
         } else if (gameState === GAME_STATES.inGame$) {
             if (!inGameKeyPressed) {
                 inGameKeyPressed = true;
@@ -925,11 +919,8 @@ function animate() {
 
         cameraMixer.update(delta);
         ufoMixer.update(delta);
-        ufoIndicatorMixer.update(delta);
     }
     else if (gameState === GAME_STATES.beforeGame$) {
-        // TODO: blink UFO lights
-
         updateBeforeGame(delta);
     }
 
@@ -937,6 +928,8 @@ function animate() {
         renderer.setRenderTarget(rtTexture);
         renderer.clear();
     }
+
+    ufoIndicatorMixer.update(delta);
 
     // camera.layers.set(LAYER_BLOOM);
     // composer.render();
@@ -1087,6 +1080,13 @@ function updateGameState() {
 
         camera._v = cameraNormalPosition.clone().sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
+
+        ufoIndicatorAction.stop();
+
+        setTimeout(function () {
+            gameState = GAME_STATES.inGame$;
+            updateGameState();
+        }, BEFORE_GAME_ANIMATION_DURATION * 1000);
     }
     else {
         ufo.position.set(...ufoNormalPosition.toArray());
