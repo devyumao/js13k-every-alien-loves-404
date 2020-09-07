@@ -12,7 +12,6 @@ var ANGULAR_VEL = Math.PI / 600;
 var ANGULAR_ACC = ANGULAR_VEL / 30;
 var UFO_PHI = Math.PI * 0.42;
 var UFO_THETA = 0;
-var UFO_LIGHT_INTENSITY = 10;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
@@ -259,7 +258,7 @@ var medium = {
 
             if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
                 // TODO: check media is not removed from mediaGroup
-    
+
                 if (media._viewed >= 1e6) {
                     const text = Math.round(media._viewed / 1e5) / 10 + 'M';
                     popup.setAttribute('class', 'p r');
@@ -517,12 +516,12 @@ function initCameraMixer() {
 function initLight() {
     lights = {};
 
-    lights.ambient = new THREE.AmbientLight(colors.ambient, 0.1);
+    lights.ambient = new THREE.AmbientLight(colors.ambient, 0.7);
     lights.ambient.layers.enable(LAYER_EARTH);
     lights.ambient.layers.disable(LAYER_DEFAULT);
     scene.add(lights.ambient);
 
-    lights.key = new THREE.DirectionalLight(colors.key, 0.3);
+    lights.key = new THREE.DirectionalLight(colors.key, 0.5);
     lights.key.position.set(0, 0.5, 1);
     lights.key.layers.enableAll();
     lights.key.castShadow = true;
@@ -546,36 +545,6 @@ function initLight() {
     lights.fillBottom.layers.disable(LAYER_EARTH);
     pivot.add(lights.fillTop);
     pivot.add(lights.fillBottom);
-
-    lights.fillTopEarth = new THREE.DirectionalLight(colors.skyA, 1);
-    lights.fillTopEarth.position.set(0.5, 1, 0.75);
-    lights.fillBottomEarth = new THREE.DirectionalLight(colors.skyB, 1);
-    lights.fillBottomEarth.position.set(-0.5, -1, -0.75);
-    lights.fillTopEarth.layers.disable(LAYER_DEFAULT);
-    lights.fillBottomEarth.layers.disable(LAYER_DEFAULT);
-    lights.fillTopEarth.layers.enable(LAYER_EARTH);
-    lights.fillBottomEarth.layers.enable(LAYER_EARTH);
-    // pivot.add(lights.fillTopEarth);
-    // pivot.add(lights.fillBottomEarth);
-
-    lights.sun = new THREE.DirectionalLight('#fff', 0.7);
-    lights.sun.position.set(0, -0.2, 1);
-    lights.sun.layers.disable(LAYER_DEFAULT);
-    lights.sun.layers.enable(LAYER_EARTH);
-    pivot.add(lights.sun);
-
-    var ufoLight = new THREE.PointLight('#ff8', 1, UFO_LIGHT_INTENSITY);
-    ufoLight.castShadow = false;
-    ufoLight.shadow.camera.near = 0.1;
-    ufoLight.shadow.camera.far = 10;
-    ufoLight.shadow.bias = -0.005;
-    ufoLight.position.set(0, 2, RADIUS_UFO_POS);
-    ufoLight.layers.set(LAYER_EARTH);
-    ufoLight.layers.enable(LAYER_EARTH);
-    ufoLight.layers.disable(LAYER_DEFAULT);
-    ufoLight.d = 0;
-    lights.ufo = ufoLight;
-    scene.add(ufoLight);
 }
 
 function initRenderer() {
@@ -970,7 +939,7 @@ function onWindowResize() {
 function initControl() {
     document.addEventListener('keydown', function (e) {
         keys[e.keyCode] = true;
-        // audio.playBg();
+        audio.playBg();
 
         if (gameState === GAME_STATES.welcome$) {
             gameState = GAME_STATES.beforeGame$;
@@ -1000,7 +969,6 @@ function animate() {
         updateMovement();
 
         updateUfo();
-        updateLight(delta * 1e3);
 
         updatePathLength();
         updateTrack();
@@ -1091,14 +1059,6 @@ function updateEarth(delta) {
         );
     }
     earth.geometry.verticesNeedUpdate = true;
-}
-
-function updateLight(delta) {
-    var ufoLight = lights.ufo;
-    var d = lights.ufo.d + delta * 0.005;
-    ufoLight.power = UFO_LIGHT_INTENSITY * (0.8 + 0.2 * Math.sin(d));
-    ufoLight.d = d;
-    // console.log(ufoLight.power)
 }
 
 function updateClouds(delta) {
