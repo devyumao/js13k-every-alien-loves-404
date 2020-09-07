@@ -90,7 +90,7 @@ var angularVel = { phi: 0, theta: 0 };
 var ufoOriginRotation;
 
 var clock;
-var trackTime = Date.now();
+var trackTime;
 
 var gameState = GAME_STATES.welcome$;
 var cameraState = CAMERA_STATES.distant$;
@@ -100,6 +100,8 @@ var cameraBeforeGamePosition = new THREE.Vector3(-50, -0.65, RADIUS_UFO_POS + 2)
 var cameraNormalPosition = new THREE.Vector3(0, 0, CAMERA_DISTANT_Z);
 var ufoBeforeGamePosition = new THREE.Vector3(-50, 0, RADIUS_UFO_POS);
 var ufoNormalPosition = getVectorFromSphCoord(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
+
+var inGameKeyPressed = false;
 
 var colors = {
     primary: '#DD4391',
@@ -165,7 +167,6 @@ var specimens = {
             vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
             var pos = pivot.worldToLocal(vec);
             this.targetItem$.position.set(pos.x, pos.y, pos.z);
-            console.log(vec);
         }
 
         if (this.targetItem$) {
@@ -880,6 +881,11 @@ function initControl() {
                 gameState = GAME_STATES.inGame$;
                 updateGameState();
             }, BEFORE_GAME_ANIMATION_DURATION * 1000);
+        } else if (gameState === GAME_STATES.inGame$) {
+            if (!inGameKeyPressed) {
+                inGameKeyPressed = true;
+                trackTime = Date.now();
+            }
         }
     });
     document.addEventListener('keyup', function (e) {
