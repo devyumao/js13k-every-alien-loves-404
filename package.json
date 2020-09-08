@@ -7,7 +7,8 @@
     "lib": "lib"
   },
   "scripts": {
-    "build": "node build/build.js"
+    "build": "node build/build.js",
+    "check": "npm run build && curl -X POST --form bundle=@dist/alien.zip --form category=webxr https://iw8sii1h9b.execute-api.eu-west-1.amazonaws.com/stage/analyze-bundle"
   },
   "repository": {
     "type": "git",
