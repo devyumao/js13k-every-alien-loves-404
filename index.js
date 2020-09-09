@@ -588,6 +588,7 @@ function initRenderer() {
     renderer.setSize(W, H);
     renderer.autoClear = false;
     renderer.setClearColor(0x000000, 0.0);
+    renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     // ====== UI ======
@@ -1049,7 +1050,7 @@ function animate() {
 	stats.end();
     // DEBUG END
 
-    requestAnimationFrame(animate);
+    renderer.setAnimationLoop(animate);
 }
 
 function updateCamera() {
