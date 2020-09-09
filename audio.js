@@ -1,10 +1,51 @@
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+
+let zzfx,zzfxV,zzfxX,zzfxR
+
+// ZzFXMicro - Zuper Zmall Zound Zynth
+/*
+  ZzFX MIT License
+
+  Copyright (c) 2019 - Frank Force
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*/
+zzfxV=.3    // volume
+zzfx=       // play sound
+(q=1,k=.05,c=220,e=0,t=0,u=.1,r=0,F=1,v=0,z=0,w=0,A=0,l=0,B=0,x=0,G=0,d=0,y=1,m=0,C=0)=>{let b=2*Math.PI,H=v*=500*b/zzfxR**2,I=(0<x?1:-1)*b/4,D=c*=(1+2*k*Math.random()-k)*b/zzfxR,Z=[],g=0,E=0,a=0,n=1,J=0,K=0,f=0,p,h;e=99+zzfxR*e;m*=zzfxR;t*=zzfxR;u*=zzfxR;d*=zzfxR;z*=500*b/zzfxR**3;x*=b/zzfxR;w*=b/zzfxR;A*=zzfxR;l=zzfxR*l|0;for(h=e+m+t+u+d|0;a<h;Z[a++]=f)++K%(100*G|0)||(f=r?1<r?2<r?3<r?Math.sin((g%b)**3):Math.max(Math.min(Math.tan(g),1),-1):1-(2*g/b%2+2)%2:1-4*Math.abs(Math.round(g/b)-g/b):Math.sin(g),f=(l?1-C+C*Math.sin(2*Math.PI*a/l):1)*(0<f?1:-1)*Math.abs(f)**F*q*zzfxV*(a<e?a/e:a<e+m?1-(a-e)/m*(1-y):a<e+m+t?y:a<h-d?(h-a-d)/u*y:0),f=d?f/2+(d>a?0:(a<h-d?1:(h-a)/d)*Z[a-d|0]/2):f),p=(c+=v+=z)*Math.sin(E*x-I),g+=p-p*B*(1-1E9*(Math.sin(a)+1)%2),E+=p-p*B*(1-1E9*(Math.sin(a)**2+1)%2),n&&++n>A&&(c+=w,D+=w,n=0),!l||++J%l||(c=D,v=H,n=n||1);q=zzfxX.createBuffer(1,h,zzfxR);q.getChannelData(0).set(Z);c=zzfxX.createBufferSource();c.buffer=q;c.connect(zzfxX.destination);c.start();return c}
+zzfxX=new AudioContext // audio context
+zzfxR=44100 // sample rate
+
+
+
+var EFFECT_DNA = [,,290,.48,.1,.55,,.61,-0.3,-4.2,230,.02,.1,,.1,,,.77,.09,.34]; // Powerup 17
+var EFEECT_FAIL = [,,37,,,.25,4,.4,,,,,,,,,,.61,.14]; // Random 264
+var EFFECT_404 = [,,405,.11,.24,.98,2,.34,-1.2,,6,.07,.28,,,,,.64,.03]; // Powerup 174
+var EFFECT_TWEET = [,,431,.04,.09,.37,,.76,-3.2,,,,,,,.1,,.98,.05]; // Jump 130
+
 var SKIP_NOTE = -1;
 var TRACK_ID_MELODY = 0;
 var BEATS_PER_MINUTE = 15;
 var BEAT_DURATION = 60 / BEATS_PER_MINUTE;
-var SAMPLE_RATE = 48000;
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+var SAMPLE_RATE = zzfxR;
 
 var audio = {
     ctx: new AudioContext(),
@@ -13,6 +54,7 @@ var audio = {
     isMuted: false,
 
     playBg: playBg,
+    playEffect: playEffect,
 
     _audioBg: null,
     _isBgPlaying: false
@@ -194,6 +236,10 @@ function playBg() {
         audio._audioBg.start();
         audio._isBgPlaying = true;
     }
+}
+
+function playEffect(zzfxArr) {
+    zzfx(... zzfxArr);
 }
 
 function getFreq(note, octaveOffset) {

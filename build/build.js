@@ -37,7 +37,7 @@ function buildHtml() {
     // Replace with CDN
     htmlSrc = htmlSrc.replace(
         './node_modules/three/build/three.js',
-        'https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.min.js'
+        'https://js13kgames.com/webxr-src/2020/three.js'
     );
 
     htmlSrc = htmlSrc.replace(
@@ -47,7 +47,8 @@ function buildHtml() {
 
     [
         '<script src="./node_modules/stats.js/build/stats.min.js"></script>',
-        '<script src="./node_modules/dat.gui/build/dat.gui.js"></script>'
+        '<script src="./node_modules/dat.gui/build/dat.gui.js"></script>',
+        '<script src="./audio.js"></script>'
     ].forEach(txt => {
         htmlSrc = htmlSrc.replace(txt, '');
     });
