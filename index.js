@@ -1,5 +1,7 @@
 (function (THREE, window, document) {
 
+// $$$_INJECT_VR_$$$
+
 var getElementById = function (id) {
     return document.getElementById(id);
 };
@@ -69,7 +71,7 @@ var baseAxisY = new THREE.Vector3(0, 1, 0);
 //     earthTexture: null
 // };
 
-var renderer, scene, sceneRTT, camera, cameraRTT, lights;
+var renderer, scene, sceneRTT, camera, cameraRTT, lights, vrControls;
 
 var rtTexture, rtMesh;
 var rttDprRatio = Math.max(2, Math.round(H / 250));
@@ -436,6 +438,8 @@ function main() {
         window.addEventListener('resize', onWindowResize, false);
 
         initControl();
+
+        vrControls = new THREE.VRControls(camera);
 
         updateGameState(GAME_STATES.welcome$);
 
@@ -1040,6 +1044,8 @@ function animate() {
     // camera.layers.set(LAYER_BLOOM);
     // composer.render();
     // renderer.clearDepth();
+
+    vrControls.update();
 
     camera.layers.set(LAYER_EARTH);
     renderer.render(scene, camera);
