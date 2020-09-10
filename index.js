@@ -1,5 +1,12 @@
 (function (THREE, window, document) {
 
+var getElementById = function (id) {
+    return document.getElementById(id);
+};
+
+var STR_BLOCK = 'block';
+var STR_NONE = 'none';
+
 var W = window.innerWidth;
 var H = window.innerHeight;
 var Dpr = 2;
@@ -42,11 +49,18 @@ var UFO_STATES = {
 };
 var GAME_STATES = {
     welcome$: 0, // display only once when web page loads
-    beforeGame$: 1, // animation from welcom to inGame
+    welcomeEasingOut$: 1, // animation from welcom to inGame
     inGame$: 2,
-    gameOver$: 3
+    gameOverEasingIn$: 3,
+    gameOver$: 4,
+    gameOverEasingOut$: 5 // from gameOver to inGame
 };
-var BEFORE_GAME_ANIMATION_DURATION = 0; // FIXME: temp
+var isGameWin = 0; // should be used only when game over
+var BEFORE_GAME_ANIMATION_DURATION = 3;
+// DEBUG
+// BEFORE_GAME_ANIMATION_DURATION = 0;
+// DEBUG END
+var GAME_OVER_ANIMATION_DURATION = 30;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -93,9 +107,14 @@ var cameraState = CAMERA_STATES.distant$;
 var ufoState = UFO_STATES.idle$;
 
 var cameraBeforeGamePosition = new THREE.Vector3(-50, -0.65, RADIUS_UFO_POS + 2);
-var cameraNormalPosition = new THREE.Vector3(0, 0, CAMERA_DISTANT_Z);
+var cameraInGamePosition = new THREE.Vector3(0, 0, CAMERA_DISTANT_Z);
+
+var pivotInGamePosition = new THREE.Vector3(0, 0, 0);
+var pivotGameOverPosition = new THREE.Vector3(-100, 0, -250);
+
 var ufoBeforeGamePosition = new THREE.Vector3(-50, 0, RADIUS_UFO_POS);
-var ufoNormalPosition = getVectorFromSphCoord(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
+var ufoInGamePosition = getVectorFromSphCoord(RADIUS_UFO_POS, UFO_PHI, UFO_THETA);
+var ufoGameOverPosition = new THREE.Vector3(-3, 1, 16);
 
 var inGameKeyPressed = false;
 
@@ -198,7 +217,7 @@ var medium = {
     group$: new THREE.Group(),
     minAngle$: Infinity,
     targetItem$: null,
-    popupsEl$: document.getElementById('p'),
+    popupsEl$: getElementById('p'),
     lastUpdated$: Date.now(),
 
     init$() {
@@ -309,9 +328,9 @@ var medium = {
 
 
 var wiggler = {
-    el$: document.getElementById('w'),
-    targetEl$: document.getElementById('wt'),
-    pointerEl$: document.getElementById('wp'),
+    el$: getElementById('w'),
+    targetEl$: getElementById('wt'),
+    pointerEl$: getElementById('wp'),
 
     length$: 16,
     targetStart$: 0,
@@ -362,7 +381,7 @@ var wiggler = {
 
 
 var failMsg = {
-    el$: document.getElementById('f'),
+    el$: getElementById('f'),
     _clock$: null,
     running$: false,
 
@@ -418,7 +437,7 @@ function main() {
 
         initControl();
 
-        updateGameState();
+        updateGameState(GAME_STATES.welcome$);
 
         animate();
     });
@@ -439,7 +458,7 @@ function initScene() {
     scene = new THREE.Scene();
     sceneRTT = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 1e3);
+    camera = new THREE.PerspectiveCamera(75, W / H, 0.1, 1e6);
     // camera.position.z = CAMERA_DISTANT_Z;
     camera.layers.enable(LAYER_EARTH);
 
@@ -459,7 +478,7 @@ function initScene() {
         fragmentShader: 'uniform vec3 t;uniform vec3 b;varying vec2 vUv;void main(){gl_FragColor = vec4(mix(t,b,vUv.y),1.0);}'
     });
     var bgMesh = new THREE.Mesh(bg, bgMat);
-    bgMesh.position.z = -100;
+    bgMesh.position.z = -400;
     scene.add(bgMesh);
 
 
@@ -554,20 +573,16 @@ function initRenderer() {
     });
     Dpr = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
     renderer.setPixelRatio(Dpr);
-    renderer.setSize(W, H);
     renderer.autoClear = false;
     renderer.setClearColor(0x000000, 0.0);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     // ====== UI ======
-    uiCanvas = document.getElementById('u');
-    var width = W * Dpr;
-    var height = H * Dpr;
-    uiCanvas.width = width;
-    uiCanvas.height = height;
-
+    uiCanvas = getElementById('u');
     uiCtx = uiCanvas.getContext('2d');
+
+    onWindowResize();
 }
 
 function createEarth() {
@@ -636,7 +651,7 @@ function createUfo() {
     ufoLaser.scale.set(0, 0, 0);
     ufo.add(ufoLaser);
 
-    ufo.position.set(...ufoNormalPosition.toArray());
+    ufo.position.set(...ufoInGamePosition.toArray());
     ufo.rotation.x = 1;
     ufo.layers.set(LAYER_DEFAULT);
     scene.add(ufo);
@@ -802,12 +817,12 @@ function createSky() {
     var sky = new THREE.Group();
     pivot.add(sky);
 
-    var R = 80;
-    var r = 2.5;
-    for (var i = 0; i < 2e3; ++i) {
+    var R = 150;
+    var r = 6;
+    for (var i = 0; i < 3e3; ++i) {
         var mat = new THREE.MeshBasicMaterial({
             color: '#999',
-            opacity: Math.random(),
+            opacity: Math.random() * 0.5,
             transparent: true
         });
         var geo = new THREE.TetrahedronGeometry(Math.random(), 0);
@@ -935,20 +950,40 @@ function onWindowResize() {
 
     renderer.setSize(W, H);
     // composer.setSize(W, H);
+
+    uiCanvas.width = W * Dpr;
+    uiCanvas.height = H * Dpr;
+    updateCanvas();
 }
 
 function initControl() {
     document.addEventListener('keydown', function (e) {
+        // DEBUG
+        // console.log('KEY CODE', e.keyCode);
+        // DEBUG END
+
         keys[e.keyCode] = true;
         audio.playBg();
 
+        var keyEnter = 13;
+        var keySpace = 32;
+        // TODO: add VR keys?
+        var isKeyOk = [keyEnter, keySpace].indexOf(e.keyCode) > -1;
+
         if (gameState === GAME_STATES.welcome$) {
-            gameState = GAME_STATES.beforeGame$;
-            updateGameState();
-        } else if (gameState === GAME_STATES.inGame$) {
+            if (isKeyOk) {
+                updateGameState(GAME_STATES.welcomeEasingOut$);
+            }
+        }
+        else if (gameState === GAME_STATES.inGame$) {
             if (!inGameKeyPressed) {
                 inGameKeyPressed = true;
                 trackTime = Date.now();
+            }
+        }
+        else if (gameState === GAME_STATES.gameOverEasingIn$ || gameState === GAME_STATES.gameOver$) {
+            if (isKeyOk) {
+                updateGameState(GAME_STATES.gameOverEasingOut$);
             }
         }
     });
@@ -986,8 +1021,11 @@ function animate() {
         ufoMixer.update(delta);
         ufoRayMixer.update(delta);
     }
-    else if (gameState === GAME_STATES.beforeGame$) {
+    else if (gameState === GAME_STATES.welcomeEasingOut$) {
         updateBeforeGame(delta);
+    }
+    else if (gameState === GAME_STATES.gameOverEasingIn$) {
+        updateGameOverEasingIn(delta);
     }
 
     updateEarth(delta * 1e3);
@@ -1126,40 +1164,97 @@ function updateMovement() {
     angularVel.theta && pivot.rotateOnWorldAxis(baseAxisY, angularVel.theta);
 }
 
-function updateGameState() {
-    if (gameState === GAME_STATES.welcome$) {
-        ufo.position.set(...ufoBeforeGamePosition.toArray());
-        camera.position.set(...cameraBeforeGamePosition.toArray());
-    }
-    else if (gameState === GAME_STATES.beforeGame$) {
-        var ui = document.getElementById('a');
-        ui.parentNode.removeChild(ui);
+function updateGameState(state, isWin) {
+    gameState = state;
 
-        ufo._v = ufoNormalPosition.clone().sub(ufo.position)
+    var b = getElementById('b');
+    var u = getElementById('u');
+
+    function restart() {
+        ufo._v = ufoInGamePosition.clone().sub(ufo.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
-        camera._v = cameraNormalPosition.clone().sub(camera.position)
+        camera._v = cameraInGamePosition.clone().sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
         ufoIndicatorAction.stop();
 
         setTimeout(function () {
-            gameState = GAME_STATES.inGame$;
-            updateGameState();
+            updateGameState(GAME_STATES.inGame$);
         }, BEFORE_GAME_ANIMATION_DURATION * 1e3);
     }
-    else {
-        ufo.position.set(...ufoNormalPosition.toArray());
-        camera.position.set(...cameraNormalPosition.toArray());
+
+    if (gameState === GAME_STATES.welcome$) {
+        ufo.position.set(...ufoBeforeGamePosition.toArray());
+        camera.position.set(...cameraBeforeGamePosition.toArray());
+    }
+    else if (gameState === GAME_STATES.welcomeEasingOut$) {
+        var ui = getElementById('a');
+        ui.parentNode.removeChild(ui);
+
+        restart();
+    }
+    else if (gameState === GAME_STATES.gameOverEasingIn$) {
+        pivot._v = pivotGameOverPosition.clone().sub(pivot.position)
+            .divideScalar(GAME_OVER_ANIMATION_DURATION);
+
+        ufo._v = ufoGameOverPosition.clone().sub(ufo.position)
+            .divideScalar(GAME_OVER_ANIMATION_DURATION / 4);
+
+        b.style.display = STR_BLOCK;
+        u.style.display = STR_NONE;
+
+        if (isWin) {
+            b.className = 'w';
+        }
+        else {
+            b.className = 'f';
+        }
+
+        setTimeout(function () {
+            updateGameState(GAME_STATES.gameOver$);
+        }, GAME_OVER_ANIMATION_DURATION * 1e3);
+    }
+    else if (gameState === GAME_STATES.gameOverEasingOut$) {
+        b.style.display = STR_NONE;
+        u.style.display = STR_BLOCK;
+
+        restart();
+    }
+    else if (gameState === GAME_STATES.inGame$) {
+        ufo.position.set(...ufoInGamePosition.toArray());
+        camera.position.set(...cameraInGamePosition.toArray());
+        pivot.position.set(...pivotInGamePosition.toArray());
+
+        u.style.display = STR_BLOCK;
         updateCanvas();
     }
 }
 
 function updateBeforeGame(delta) {
-    ufo.position.add(ufo._v.clone().multiplyScalar(delta))
-        .clamp(ufoBeforeGamePosition, ufoNormalPosition);
-    camera.position.add(camera._v.clone().multiplyScalar(delta))
-        .clamp(cameraBeforeGamePosition, cameraNormalPosition);
+    ufo.position.add(ufo._v.clone().multiplyScalar(delta));
+    clamp(ufo.position, ufoBeforeGamePosition, ufoInGamePosition);
+    camera.position.add(camera._v.clone().multiplyScalar(delta));
+    clamp(camera.position, cameraBeforeGamePosition, cameraInGamePosition);
+}
+
+function updateGameOverEasingIn(delta) {
+    ufo.position.add(ufo._v.clone().multiplyScalar(delta));
+    clamp(ufo.position, ufoInGamePosition, ufoGameOverPosition);
+
+    pivot.position.add(pivot._v.clone().multiplyScalar(delta));
+    clamp(pivot.position, pivotInGamePosition, pivotGameOverPosition);
+}
+
+function clamp(obj, source, target) {
+    ['x', 'y', 'z'].forEach(function (dim) {
+        if (source[dim] > target[dim]) {
+            obj[dim] = Math.max(obj[dim], target[dim]);
+        }
+        else {
+            obj[dim] = Math.min(obj[dim], target[dim]);
+        }
+    });
 }
 
 function updateUfo() {
