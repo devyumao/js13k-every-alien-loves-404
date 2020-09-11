@@ -48,16 +48,16 @@ var BEAT_DURATION = 60 / BEATS_PER_MINUTE;
 var SAMPLE_RATE = zzfxR;
 
 var audio = {
-    ctx: new AudioContext(),
+    ctx$: new AudioContext(),
 
-    isReady: false,
-    isMuted: false,
+    isReady$: false,
+    isMuted$: false,
 
-    playBg: playBg,
-    playEffect: playEffect,
+    playBg$: playBg,
+    playEffect$: playEffect,
 
-    _audioBg: null,
-    _isBgPlaying: false
+    _audioBg$: null,
+    _isBgPlaying$: false
 };
 
 init();
@@ -216,13 +216,13 @@ function init() {
 
     offCtx.startRendering()
         .then(function (renderedBuffer) {
-            var audioSrc = audio.ctx.createBufferSource();
-            audio._audioBg = audioSrc;
+            var audioSrc = audio.ctx$.createBufferSource();
+            audio._audioBg$ = audioSrc;
             audioSrc.buffer = renderedBuffer;
-            audioSrc.connect(audio.ctx.destination);
+            audioSrc.connect(audio.ctx$.destination);
             audioSrc.loop = true;
 
-            audio.isReady = true;
+            audio.isReady$ = true;
         })
         .catch(function (e) {
             // DEBUG
@@ -232,9 +232,9 @@ function init() {
 }
 
 function playBg() {
-    if (audio.isReady && !audio._isBgPlaying) {
-        audio._audioBg.start();
-        audio._isBgPlaying = true;
+    if (audio.isReady$ && !audio._isBgPlaying$) {
+        audio._audioBg$.start();
+        audio._isBgPlaying$ = true;
     }
 }
 

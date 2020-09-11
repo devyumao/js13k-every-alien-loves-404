@@ -991,7 +991,7 @@ function initControl() {
         // DEBUG END
 
         keys[e.keyCode] = true;
-        audio.playBg();
+        audio.playBg$();
 
         var keyEnter = 13;
         var keySpace = 32;
