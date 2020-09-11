@@ -216,7 +216,7 @@ var medium = {
 
     init$() {
         pivot.add(this.group$);
-        this.add$(UFO_PHI, UFO_THETA);
+        // this.add$(UFO_PHI, UFO_THETA); // FIXME: temp
     },
 
     update$() {
