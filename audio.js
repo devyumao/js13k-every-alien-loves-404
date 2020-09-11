@@ -87,10 +87,10 @@ function init() {
     };
     var pc = [[3, 0, -4]];
 
-    var w = 'w999';
+    var w = '4909';
     var imag = new Float32Array(w.length);
     var real = new Float32Array(w.length);
-    for (var i = 1; i < w.length; ++i) {
+    for (var i = 0; i < w.length; ++i) {
         imag[i] = w[i];
     }
 

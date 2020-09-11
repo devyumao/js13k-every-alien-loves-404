@@ -8,13 +8,14 @@ var getElementById = function (id) {
 
 var STR_BLOCK = 'block';
 var STR_NONE = 'none';
+var COLOR_WHITE = '#fff';
 
 var W = window.innerWidth;
 var H = window.innerHeight;
 var Dpr = 2;
 var RADIUS_EARTH = 10;
 var RADIUS_LAND = 10.1;
-var RADIUS_OCEAN = 9.9;
+var RADIUS_OCEAN = 9.8;
 var RADIUS_UFO_POS = 11;
 var SPECIMENS_AMOUNT = 10;
 var ANGULAR_VEL = Math.PI / 600;
@@ -66,7 +67,7 @@ var BEFORE_GAME_ANIMATION_DURATION = 3;
 // DEBUG
 // BEFORE_GAME_ANIMATION_DURATION = 0;
 // DEBUG END
-var GAME_OVER_ANIMATION_DURATION = 30;
+var GAME_OVER_ANIMATION_DURATION = 60;
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
@@ -92,9 +93,8 @@ var keys = [];
 
 var pivot = new THREE.Group();
 var earth, earthSurface;
-var clouds, cloudsSurface;
+var clouds;
 var land, landSurface;
-var comet;
 var ufo = new THREE.Group();
 var ufoRay, ufoIndicator, ufoLaser;
 
@@ -128,16 +128,11 @@ var ufoGameOverPosition = new THREE.Vector3(-3, 1, 16);
 var inGameKeyPressed = false;
 
 var colors = {
-    primary: '#DD4391',
-    'Bg Top': '#0e1a25',// '#912deb',
-    'Bg Bottom': '#202731',// '#59b5e8',
-    'Ambient': '#000',
-    'Key': '#444',// '#ccc',
-    'Sky A': '#297aa7',// '#2981a7',
-    'Sky B': '#3434c0', //'#4629a7',
-    'OceanLevels': ['#31d9d9', '#32c5d9', '#44a9c8', '#2694b9', '#067499'],
-    'Land': '#9be889',
-    'Change': function () {}
+    primary$: '#DD4391',
+    bgTop$: '#0e1a25',
+    bgBottom$: '#202731',
+    oceanLevels$: ['#31d9d9', '#32c5d9', '#44a9c8', '#2694b9', '#067499'],
+    land$: '#9be889'
 };
 
 // $$$_INJECT_AUDIO_$$$
@@ -324,15 +319,15 @@ var medium = {
                 if (media._viewed >= 1e6) {
                     const text = Math.round(media._viewed / 1e5) / 10 + 'M';
                     popup.setAttribute('class', 'p r');
-                    popup.innerText = text + ' Viewed 🔥🔥🔥';
+                    popup.innerText = text + ' VIEWED';
                 }
                 else if (media._viewed >= 1e3) {
                     const text = Math.round(media._viewed / 100) / 10 + 'K';
                     popup.setAttribute('class', 'p y');
-                    popup.innerText = text + ' Viewed 🔥';
+                    popup.innerText = text + ' VIEWED';
                 }
                 else {
-                    popup.innerText = media._viewed + ' Viewed';
+                    popup.innerText = media._viewed + ' VIEWED';
                 }
                 if (Math.random() > 0.95) {
                     // TODO: not so randomly
@@ -438,51 +433,38 @@ var failMsg = {
 main();
 
 function main() {
-    loadResources().then(() => {
-        // DEBUG
-        initDebug();
-        // DEBUG END
+    // DEBUG
+    initDebug();
+    // DEBUG END
 
-        initScene();
-        initLight();
+    initScene();
+    initLight();
 
-        createEarth();
-        createUfo();
-        createClouds();
-        createLand();
-        createSky();
-        createComet();
+    createEarth();
+    createUfo();
+    createClouds();
+    createLand();
+    createSky();
 
-        pivot.add(track);
-        scene.add(pivot);
+    pivot.add(track);
+    scene.add(pivot);
 
-        specimens.init$();
-        medium.init$();
+    specimens.init$();
+    medium.init$();
 
-        initRenderer();
+    initRenderer();
 
-        clock = new THREE.Clock();
+    clock = new THREE.Clock();
 
-        window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('resize', onWindowResize, false);
 
-        initControl();
+    initControl();
 
-        vrControls = new THREE.VRControls(camera);
+    vrControls = new THREE.VRControls(camera);
 
-        updateGameState(GAME_STATES.welcome$);
+    updateGameState(GAME_STATES.welcome$);
 
-        animate();
-    });
-}
-
-function loadResources() {
-    // var textureLoader = new THREE.TextureLoader();
-    return new Promise(resolve => {
-        // textureLoader.load('./asset/map.jpg', texture => {
-        //     resources.earthTexture = texture;
-        // });
-        resolve();
-    });
+    animate();
 }
 
 function initScene() {
@@ -498,14 +480,14 @@ function initScene() {
     var bgMat = new THREE.ShaderMaterial({
         uniforms: {
             t: {
-                value: new THREE.Color(colors['Bg Top'])
+                value: new THREE.Color(colors.bgTop$)
             },
             b: {
-                value: new THREE.Color(colors['Bg Bottom'])
+                value: new THREE.Color(colors.bgBottom$)
             }
         },
-        vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-        fragmentShader: 'uniform vec3 t;uniform vec3 b;varying vec2 vUv;void main(){gl_FragColor = vec4(mix(t,b,vUv.y),1.0);}'
+        vertexShader: 'varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+        fragmentShader: 'uniform vec3 t;uniform vec3 b;varying vec2 v;void main(){gl_FragColor = vec4(mix(t,b,v.y),1.0);}'
     });
     var bgMesh = new THREE.Mesh(bg, bgMat);
     bgMesh.position.z = -400;
@@ -548,12 +530,12 @@ function initScene() {
 function initLight() {
     lights = {};
 
-    lights.ambient = new THREE.AmbientLight(colors.ambient, 0.7);
+    lights.ambient = new THREE.AmbientLight(COLOR_WHITE, 0.7);
     lights.ambient.layers.enable(LAYER_EARTH);
     lights.ambient.layers.disable(LAYER_DEFAULT);
     scene.add(lights.ambient);
 
-    lights.key = new THREE.DirectionalLight(colors.key, 0.5);
+    lights.key = new THREE.DirectionalLight(COLOR_WHITE, 0.4);
     lights.key.position.set(0, 0.5, 1);
     lights.key.layers.enableAll();
     lights.key.castShadow = true;
@@ -565,7 +547,6 @@ function initLight() {
     lights.spot.shadow.mapSize.width = 1024;
     lights.spot.shadow.mapSize.height = 1024;
     lights.spot.layers.enableAll();
-    // scene.add(lights.spot);
 
     lights.fillTop = new THREE.DirectionalLight('#888', 1);
     lights.fillTop.position.set(0.5, 1, 0.75);
@@ -611,7 +592,7 @@ function createEarth() {
     }
 
     var mat = new THREE.MeshPhongMaterial({
-        color: colors.OceanLevels[0],
+        color: colors.oceanLevels$[0],
         flatShading: true,
         vertexColors: true,
         shininess: 0.8,
@@ -749,7 +730,7 @@ function addPointToTrack() {
 
 function createLand() {
     var mat = new THREE.MeshPhongMaterial({
-        color: colors.Land,
+        color: colors.land$,
         flatShading: true,
         shininess: 0
         // wireframe: true
@@ -830,8 +811,8 @@ function createLand() {
     landSurface.forEach(function (i, id) {
         earth.geometry.faces[id].color = new THREE.Color(
             i >= 1
-                ? colors.OceanLevels[0]
-                : colors.OceanLevels[Math.min(-i + 1, colors.OceanLevels.length - 1)]
+                ? colors.oceanLevels$[0]
+                : colors.oceanLevels$[Math.min(-i + 1, colors.oceanLevels$.length - 1)]
         );
     });
 
@@ -848,7 +829,7 @@ function createSky() {
     for (var i = 0; i < 3e3; ++i) {
         var mat = new THREE.MeshBasicMaterial({
             color: '#999',
-            opacity: Math.random() * 0.5,
+            opacity: Math.random() * 0.8,
             transparent: true
         });
         var geo = new THREE.TetrahedronGeometry(Math.random(), 0);
@@ -872,66 +853,17 @@ function createSky() {
     }
 }
 
-function createComet() {
-    // console.log('create');
-    // var R = 30;
-    // var x = Math.random() * 10 + 0.01; // in case dividing by 0
-    // var y = 10;
-    // var z = R;
-    // var angle = -Math.atan(x / y);
-
-    // if (!comet) {
-    //     var group = new THREE.Group();
-    //     var cnt = 10;
-    //     for (var i = 0; i < cnt; ++i) {
-    //         var mat = new THREE.MeshBasicMaterial({
-    //             color: '#cc6',
-    //             opacity: 1 - i / 8,
-    //             transparent: true
-    //         });
-    //         var geo = new THREE.TetrahedronGeometry(1, 0);
-    //         var mesh = new THREE.Mesh(geo, mat);
-    //         group.add(mesh);
-
-    //         mesh.rotation.z = angle;
-    //         mesh.position.x = i * x * 0.1;
-    //         mesh.position.y = -i * y * 0.1;
-    //         mesh.scale.setScalar(1 - i / cnt);
-    //     }
-
-    //     group.position.set(x, y, z);
-    //     group.scale.setScalar(Math.random() * 2 + 4);
-    //     pivot.add(group);
-
-    //     comet = {
-    //         mesh: group,
-    //         offscreenDistance: R * 2,
-    //         x: x,
-    //         y: y,
-    //         z: z
-    //     };
-    // }
-
-    // var d = Math.sqrt(comet.x * comet.x + comet.y * comet.y);
-    // var rand = THREE.MathUtils.randFloatSpread(1 / d);
-    // comet.vx = -rand * comet.x;
-    // comet.vy = rand * comet.y;
-    // comet.vz = 0;
-    // comet.delay = 0//25000 * Math.random() + 5000; // 5~30 seconds
-    // comet.birth = Date.now();
-}
-
 function createClouds() {
     clouds = new THREE.Group();
     pivot.add(clouds);
 
     var R = RADIUS_EARTH + 2;
     var mat = new THREE.MeshPhongMaterial({
-        color: new THREE.Color('#fff'),
+        color: new THREE.Color(COLOR_WHITE),
         flatShading: true
     });
-    for (var cluster = 0; cluster < 40; ++cluster) {
-        var cnt = 4;
+    for (var cluster = 0; cluster < 50; ++cluster) {
+        var cnt = 5;
         var phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
         var theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
         var scale = Math.random() * 0.5 + 0.8;
@@ -975,7 +907,6 @@ function onWindowResize() {
     rtTexture.setSize(width, height);
 
     renderer.setSize(W, H);
-    // composer.setSize(W, H);
 
     uiCanvas.width = W * Dpr;
     uiCanvas.height = H * Dpr;
@@ -1037,8 +968,6 @@ function animate() {
 
         specimens.update$();
         medium.update$();
-
-        updateComet();
 
         wiggler.update$();
         failMsg.update$();
@@ -1125,11 +1054,6 @@ function updateEarth(delta) {
 }
 
 function updateClouds(delta) {
-    // for (var i = 0; i < cloudsSurface.length; ++i) {
-    //     cloudsSurface[i].delta += delta * 0.002;
-    //     var scale = Math.sin(cloudsSurface[i].delta) * 0.06;
-    //     clouds.children[i].scale.setScalar(1 + scale);
-    // }
     clouds.rotation.x += delta * 2e-5;
     clouds.rotation.z += delta * 1.2e-5;
 
@@ -1464,28 +1388,12 @@ function updateTrack() {
     }
 }
 
-function updateComet() {
-    // if (Date.now() > comet.birth + comet.delay) {
-    //     console.log('fly');
-    //     // flying
-    //     comet.mesh.position.x += comet.vx;
-    //     comet.mesh.position.y += comet.vy;
-    //     comet.mesh.position.z += comet.vz;
-
-    //     if (Math.abs(comet.mesh.position.x) > comet.offscreenDistance
-    //         || Math.abs(comet.mesh.position.y) > comet.offscreenDistance
-    //     ) {
-    //         createComet();
-    //     }
-    // }
-}
-
 function updateCanvas() {
     uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
 
     var margin = [20, 30];
     var textColor = '#ddd';
-    drawText('DNA Samples Collected (4/10)', margin[0], margin[1], textColor, 16);
+    drawText('DNA SAMPLES COLLECTED (4/10)', margin[0], margin[1], textColor, 16);
 
     var radius = 9;
     var d = radius * 2;
@@ -1494,17 +1402,17 @@ function updateCanvas() {
     var collectedCount = 4;
     var emptyColor = 'rgba(200,200,200,.1)';
     for (var i = 0; i < 10; ++i) {
-        var color = i < collectedCount ? colors.OceanLevels[0] : emptyColor;
+        var color = i < collectedCount ? colors.oceanLevels$[0] : emptyColor;
         drawCircle(margin[0] + (d + circleMargin) * i, circleTop, d, d, 2, color);
     }
 
     var barWidth = d * 10 + circleMargin * 9;
     var rightStart = W - margin[0] - barWidth;
-    drawText('People Heard About Aliens', rightStart - 4, margin[1], textColor, 16);
+    drawText('PUBLIC PRESSURE', rightStart + 50, margin[1], textColor, 16);
     drawCircle(rightStart, circleTop, barWidth, 8, 2, emptyColor);
 
     var peoplePercent = 0.7;
-    drawCircle(rightStart, circleTop, barWidth * peoplePercent, 8, 2, colors.primary, 1);
+    drawCircle(rightStart, circleTop, barWidth * peoplePercent, 8, 2, colors.primary$, 1);
 
     function drawText(text, x, y, color, fontSize) {
         uiCtx.fillStyle = color;
@@ -1532,82 +1440,6 @@ function updateCanvas() {
 
 // DEBUG
 function initDebug() {
-    gui = new dat.GUI();
-
-    var isNight = false;
-
-    guiConfigs = Object.assign({}, colors);
-    guiConfigs.Ocean0 = guiConfigs.OceanLevels[0];
-    guiConfigs.Ocean1 = guiConfigs.OceanLevels[1];
-    guiConfigs.Ocean2 = guiConfigs.OceanLevels[2];
-    guiConfigs.Ocean3 = guiConfigs.OceanLevels[3];
-
-    gui.addColor(guiConfigs, 'Bg Top')
-        .onChange(function (val) {
-            document.body.setAttribute(
-                'style',
-                'background:linear-gradient(90deg, '
-                    + val + ' 0%, '
-                    + guiConfigs['Bg Bottom'] + ' 100%);'
-            );
-        });
-    gui.addColor(guiConfigs, 'Bg Bottom')
-        .onChange(function (val) {
-            document.body.setAttribute(
-                'style',
-                'background:linear-gradient(90deg, '
-                    + guiConfigs['Bg Top'] + ' 0%, '
-                    + val + ' 100%);'
-            );
-        });
-
-    gui.addColor(guiConfigs, 'Ambient')
-        .onChange(function (val) {
-            lights.ambient.color.set(val);
-        });
-    gui.addColor(guiConfigs, 'Key')
-        .onChange(function (val) {
-            lights.key.color.set(val);
-        });
-    gui.addColor(guiConfigs, 'Sky A')
-        .onChange(function (val) {
-            lights.fillTopEarth.color.set(val);
-        });
-    gui.addColor(guiConfigs, 'Sky B')
-        .onChange(function (val) {
-            lights.fillBottomEarth.color.set(val);
-        });
-
-    [0, 1, 2, 3].forEach(function (x) {
-        gui.addColor(guiConfigs, 'Ocean' + x)
-            .onChange(function (val) {
-                colors.OceanLevels[x] = val;
-
-                landSurface.forEach(function (i, id) {
-                    earth.geometry.faces[id].color = new THREE.Color(
-                        i >= 1
-                            ? colors.OceanLevels[0]
-                            : colors.OceanLevels[-i + 1]
-                    );
-                });
-                earth.geometry.colorsNeedUpdate = true;
-                earth.geometry.elementsNeedUpdate = true;
-            });
-    });
-
-    gui.addColor(guiConfigs, 'Land')
-        .onChange(function (val) {
-            land.material.color.set(val);
-        });
-
-    gui.add(guiConfigs, 'Change')
-        .onChange(function () {
-            isNight = !isNight;
-            setTime(isNight);
-        });
-
-    // gui.hide();
-
     stats = new Stats();
     stats.showPanel(0);
     // document.body.appendChild(stats.dom);
