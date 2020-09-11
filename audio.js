@@ -43,7 +43,7 @@ var EFFECT_TWEET = [,,431,.04,.09,.37,,.76,-3.2,,,,,,,.1,,.98,.05]; // Jump 130
 
 var SKIP_NOTE = -1;
 var TRACK_ID_MELODY = 0;
-var BEATS_PER_MINUTE = 15;
+var BEATS_PER_MINUTE = 10;
 var BEAT_DURATION = 60 / BEATS_PER_MINUTE;
 var SAMPLE_RATE = zzfxR;
 
