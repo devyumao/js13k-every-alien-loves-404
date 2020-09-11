@@ -40,7 +40,11 @@ var UFO_STATES = {
     reducingRay$: 3,
     raying$: 4,
     takingSpec$: 5,
-    rayFailed$: 6
+    rayFailed$: 6,
+    increasingLaser$: 7,
+    reducingLaser$: 8,
+    lasing$: 9,
+    laseCompleted$: 10
 };
 var GAME_STATES = {
     welcome$: 0, // display only once when web page loads
@@ -52,6 +56,9 @@ var BEFORE_GAME_ANIMATION_DURATION = 0; // FIXME: temp
 
 var baseAxisX = new THREE.Vector3(1, 0, 0);
 var baseAxisY = new THREE.Vector3(0, 1, 0);
+
+var minScale = new THREE.Vector3(0, 0, 0);
+var maxScale = new THREE.Vector3(1, 1, 1);
 
 // var resources = {
 //     earthTexture: null
@@ -77,8 +84,8 @@ var comet;
 var ufo = new THREE.Group();
 var ufoRay, ufoIndicator, ufoLaser;
 
-var cameraMixer, ufoMixer, ufoIndicatorMixer, ufoRayMixer;
-var cameraShakeAction, ufoIdleAction, ufoIndicatorAction, ufoRayAction;
+var ufoMixer, ufoIndicatorMixer, ufoRayMixer, ufoLaserMixer;
+var ufoIdleAction, ufoIndicatorAction, ufoRayAction, ufoLaserAction;
 
 var track = new THREE.Group();
 var pathLength = 0;
@@ -151,7 +158,7 @@ var specimens = {
     },
 
     update$() {
-        this.minAngle$ = this.calcMinAngle$();
+        this.minAngle$ = calcMinAngle(this.group$.children);
         this.near$ = this.minAngle$ <= SPECIMEN_NEAR_THRES;
         this.available$ = this.minAngle$ <= SPECIMEN_AVAILABLE_THRES;
         this.updateTargetItem$();
@@ -159,7 +166,7 @@ var specimens = {
 
     updateTargetItem$() {
         if (ufoState === UFO_STATES.takingSpec$ && this.available$ && !this.targetItem$) {
-            this.targetItem$ = this.getNearest$();
+            this.targetItem$ = getNearest(this.group$.children);
             if (!this.targetItem$) return;
             var vec = new THREE.Vector3();
             vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
@@ -177,21 +184,6 @@ var specimens = {
                 this.targetItem$ = null;
             }
         }
-    },
-
-    calcMinAngle$() {
-        return this.group$.children.reduce(function (min, item) {
-            var angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
-            item.userData.angle = angle;
-            return Math.min(min, angle);
-        }, Infinity);
-    },
-
-    getNearest$() {
-        return this.group$.children.reduce(function (a, b) {
-            if (!a || b.userData.angle < a.userData.angle) return b;
-            return a;
-        }, null);
     }
 };
 
@@ -205,6 +197,7 @@ var medium = {
 
     init$() {
         pivot.add(this.group$);
+        this.add$(UFO_PHI, UFO_THETA);
     },
 
     update$() {
@@ -224,7 +217,14 @@ var medium = {
             trackMediaMap[key] = true;
         }
 
+        this.minAngle$ = calcMinAngle(this.group$.children);
+        // console.log(this.minAngle$);
+        this.updateTargetItem$();
         this.updatePopups$();
+    },
+
+    updateTargetItem$() {
+        this.targetItem$ = this.minAngle$ < 0.1 ? getNearest(this.group$.children) : null;
     },
 
     updatePopups$() {
@@ -297,7 +297,7 @@ var medium = {
 
     add$(phi, theta) {
         var media = new THREE.Mesh(
-            new THREE.SphereGeometry(0.5, 16, 16),
+            new THREE.SphereGeometry(0.2, 16, 16),
             new THREE.MeshBasicMaterial({ color: '#ff4d4f' })
         );
         media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
@@ -309,6 +309,20 @@ var medium = {
     }
 };
 
+function calcMinAngle(children) {
+    return children.reduce(function (min, item) {
+        var angle = ufo.position.angleTo(item.localToWorld(new THREE.Vector3()));
+        item.userData.angle = angle;
+        return Math.min(min, angle);
+    }, Infinity);
+}
+
+function getNearest(children) {
+    return children.reduce(function (a, b) {
+        if (!a || b.userData.angle < a.userData.angle) return b;
+        return a;
+    }, null);
+}
 
 var wiggler = {
     el$: document.getElementById('w'),
@@ -369,23 +383,57 @@ var failMsg = {
     running$: false,
 
     update$() {
-        switch (ufoState) {
-            case UFO_STATES.rayFailed$:
-                var el = this.el$;
-                if (!el.className || el.className === 'o') {
-                    this.running$ = true;
-                    // el.style.transitionDuration = '0.15s';
-                    el.className = 'i';
-                    this._clock$ = Date.now();
-                } else if (Date.now() - this._clock$ >= 1e3) {
-                    // el.style.transitionDuration = '0';
-                    el.className = 'o';
-                    this.running$ = false;
-                }
-                break;
+        if (ufoState === UFO_STATES.rayFailed$) {
+            var el = this.el$;
+            if (!el.className || el.className === 'o') {
+                this.running$ = true;
+                el.className = 'i';
+                this._clock$ = Date.now();
+            } else if (Date.now() - this._clock$ >= 1e3) {
+                el.className = 'o';
+                this.running$ = false;
+            }
         }
     }
 };
+
+var laserProgress = {
+    el$: document.getElementById('l'),
+    _clock$: null,
+    running$: false,
+    result$: null,
+
+    update$() {
+        if (ufoState === UFO_STATES.lasing$) {
+            if (keys[32]) {
+                if (!this.running$) {
+                    this.run$();
+                } else if (Date.now() - this._clock$ >= 1e3) {
+                    this.stop$();
+                    this.result$ = true;
+                }
+            } else {
+                this.stop$();
+                this.result$ = false;
+            }
+        }
+    },
+
+    run$() {
+        this.running$ = true;
+        this.el$.style.opacity = 1;
+        this.el$.style.borderLeftWidth = '14vh';
+        this._clock$ = Date.now();
+    },
+
+    stop$() {
+        this.el$.style.opacity = 0;
+        this.running$ = false;
+        setTimeout(() => {
+            this.el$.style.borderLeftWidth = '0';
+        }, 100);
+    }
+}
 
 
 main();
@@ -447,8 +495,6 @@ function initScene() {
     // camera.position.z = CAMERA_DISTANT_Z;
     camera.layers.enable(LAYER_EARTH);
 
-    initCameraMixer();
-
     var bg = new THREE.PlaneBufferGeometry(5e3, 2e3);
     var bgMat = new THREE.ShaderMaterial({
         uniforms: {
@@ -498,23 +544,6 @@ function initScene() {
     rtMesh = new THREE.Mesh(plane, mat);
     rtMesh.position.z = -100;
     sceneRTT.add(rtMesh);
-}
-
-function initCameraMixer() {
-    cameraMixer = new THREE.AnimationMixer(camera);
-    var rotationTrack = new THREE.VectorKeyframeTrack(
-        '.position',
-        [0, 1],
-        [
-            0, 0, 20,
-            1, -1, 20
-        ]
-    );
-    var clip = new THREE.AnimationClip('CameraShake', 1, [rotationTrack]);
-    cameraShakeAction = cameraMixer.clipAction(clip);
-    // cameraShakeAction.repetitions = 10;
-    // cameraShakeAction.loop = THREE.LoopPingPong;
-    // cameraShakeAction.play();
 }
 
 function initLight() {
@@ -650,6 +679,7 @@ function createUfo() {
     initUfoMixer();
     initUfoIndicatorMixer();
     initUfoRayMixer();
+    initUfoLaserMixer();
 }
 
 function initUfoMixer() {
@@ -670,9 +700,11 @@ function initUfoMixer() {
 
 function initUfoIndicatorMixer() {
     ufoIndicatorMixer = new THREE.AnimationMixer(ufoIndicator);
-    var opacityTrack = new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 1]);
-    var clip = new THREE.AnimationClip('UfoIndicator', 1, [opacityTrack]);
-    ufoIndicatorAction = ufoIndicatorMixer.clipAction(clip);
+    ufoIndicatorAction = ufoIndicatorMixer.clipAction(
+        new THREE.AnimationClip('UfoIndicator', 1, [
+            new THREE.NumberKeyframeTrack('.material.opacity', [0, 1], [0, 1])
+        ])
+    );
     ufoIndicatorAction.loop = THREE.LoopPingPong;
     ufoIndicatorAction.play();
 }
@@ -689,6 +721,20 @@ function initUfoRayMixer() {
         ])
     );
     ufoRayAction.loop = THREE.LoopPingPong;
+}
+
+function initUfoLaserMixer() {
+    ufoLaserMixer = new THREE.AnimationMixer(ufoLaser);
+    ufoLaserAction = ufoLaserMixer.clipAction(
+        new THREE.AnimationClip('UfoLaser', 0.3, [
+            new THREE.VectorKeyframeTrack(
+                '.scale',
+                [0, 0.3],
+                [1, 1, 1, 0.4, 1, 0.4]
+            )
+        ])
+    );
+    ufoLaserAction.loop = THREE.LoopPingPong;
 }
 
 function createPoint(phi, theta, color) {
@@ -973,7 +1019,7 @@ function animate() {
         updateVelocity();
         updateMovement();
 
-        updateUfo();
+        updateUfo(delta);
 
         updatePathLength();
         updateTrack();
@@ -985,10 +1031,11 @@ function animate() {
 
         wiggler.update$();
         failMsg.update$();
+        laserProgress.update$();
 
-        cameraMixer.update(delta);
         ufoMixer.update(delta);
         ufoRayMixer.update(delta);
+        ufoLaserMixer.update(delta);
     }
     else if (gameState === GAME_STATES.beforeGame$) {
         updateBeforeGame(delta);
@@ -1002,10 +1049,6 @@ function animate() {
         renderer.setRenderTarget(rtTexture);
         renderer.clear();
     }
-
-    // camera.layers.set(LAYER_BLOOM);
-    // composer.render();
-    // renderer.clearDepth();
 
     vrControls.update();
 
@@ -1168,13 +1211,13 @@ function updateBeforeGame(delta) {
         .clamp(cameraBeforeGamePosition, cameraNormalPosition);
 }
 
-function updateUfo() {
-    // console.log(ufoState);
+function updateUfo(delta) {
     updateUfoState();
     updateUfoRotation();
     updateUfoActions();
     updateUfoIndicator();
-    updateUfoRay();
+    updateUfoRay(delta);
+    updateUfoLaser(delta);
 }
 
 function updateUfoState() {
@@ -1183,7 +1226,11 @@ function updateUfoState() {
             if (angularVel.phi || angularVel.theta) {
                 ufoState = UFO_STATES.flying$;
             } else if (keys[32] && cameraState === CAMERA_STATES.close$) {
-                ufoState = UFO_STATES.increasingRay$;
+                if (medium.targetItem$) {
+                    ufoState = UFO_STATES.increasingLaser$;
+                } else {
+                    ufoState = UFO_STATES.increasingRay$;
+                }
             }
             break;
         case UFO_STATES.flying$:
@@ -1205,24 +1252,39 @@ function updateUfoState() {
                 ufoState = UFO_STATES.reducingRay$;
             }
             break;
-        case UFO_STATES.reducingRay$:
-            if (ufoRay.scale.y <= 0) {
-                ufoState = UFO_STATES.idle$;
-            }
-            break;
         case UFO_STATES.raying$:
             if (wiggler.result$ != null) {
                 ufoState = wiggler.result$ ? UFO_STATES.takingSpec$ : UFO_STATES.rayFailed$;
             }
             break;
-        case UFO_STATES.takingSpec$:
-            if (ufoRay.scale.y <= 0) {
-                ufoState = UFO_STATES.idle$;
-            }
-            break;
         case UFO_STATES.rayFailed$:
             if (!failMsg.running$) {
                 ufoState = UFO_STATES.reducingRay$;
+            }
+            break;
+        case UFO_STATES.increasingLaser$:
+            if (keys[32]) {
+                if (ufoLaser.scale.y >= 1) {
+                    ufoState = UFO_STATES.lasing$;
+                }
+            } else {
+                ufoState = UFO_STATES.reducingLaser$;
+            }
+            break;
+        case UFO_STATES.lasing$:
+            if (!laserProgress.running$) {
+                ufoState = laserProgress.result$ ? UFO_STATES.laseCompleted$ : UFO_STATES.reducingLaser$;
+            }
+            break;
+        case UFO_STATES.reducingLaser$:
+            if (!keys[32] && ufoLaser.scale.y <= 0) {
+                ufoState = UFO_STATES.idle$;
+            }
+            break;
+        case UFO_STATES.takingSpec$:
+        case UFO_STATES.reducingRay$:
+            if (ufoRay.scale.y <= 0) {
+                ufoState = UFO_STATES.idle$;
             }
             break;
     }
@@ -1251,37 +1313,66 @@ function updateUfoIndicator() {
     }
 }
 
-function updateUfoRay() {
-    var scale;
+function updateUfoRay(delta) {
     switch (ufoState) {
         case UFO_STATES.increasingRay$:
-            scale = Math.min(ufoRay.scale.y + 0.03, 1);
-            ufoRay.scale.set(scale, scale, scale);
-            // !cameraZoomAction.isRunning() && cameraZoomAction.play();
+            updateScale(ufoRay, 0.6, delta);
             break;
         case UFO_STATES.reducingRay$:
-            scale = Math.max(ufoRay.scale.y - 0.03, 0);
-            ufoRay.scale.set(scale, scale, scale);
+            updateScale(ufoRay, 0.4, delta, true);
             break;
         case UFO_STATES.raying$:
-            if (!ufoRayAction.isRunning()) {
-                ufoRayAction.play();
-            }
+            playAction(ufoRayAction);
             break;
         case UFO_STATES.takingSpec$:
-            pauseAction();
-            scale = Math.max(ufoRay.scale.y - 0.02, 0);
-            ufoRay.scale.set(scale, scale, scale);
+            pauseAction(ufoRayAction);
+            updateScale(ufoRay, 0.8, delta, true);
             break;
         case UFO_STATES.rayFailed$:
-            pauseAction();
+            pauseAction(ufoRayAction);
             break;
     }
+}
 
-    function pauseAction() {
-        if (ufoRayAction.isRunning()) {
-            ufoRayAction.paused = true;
+function updateUfoLaser(delta) {
+    switch (ufoState) {
+        case UFO_STATES.increasingLaser$:
+            updateScale(ufoLaser, 0.3, delta);
+            break;
+        case UFO_STATES.reducingLaser$:
+            pauseAction(ufoLaserAction);
+            updateScale(ufoLaser, 0.3, delta, true);
+            break;
+        case UFO_STATES.lasing$:
+            playAction(ufoLaserAction);
+            break;
+    }
+}
+
+function updateScale(object, duration, delta, scaleDown) {
+    if (!object._s) {
+        var targetScale = scaleDown ? minScale : maxScale;
+        object._s = targetScale.clone().sub(object.scale).divideScalar(duration);
+    } else {
+        object.scale
+            .add(object._s.clone().multiplyScalar(delta))
+            .clamp(minScale, maxScale);
+        if (object.scale.equals(minScale) || object.scale.equals(maxScale)) {
+            object._s = null;
         }
+    }
+}
+
+function playAction(action) {
+    if (!action.isRunning() || action.paused) {
+        action.stop();
+        action.play();
+    }
+}
+
+function pauseAction(action) {
+    if (!action.paused) {
+        action.paused = true;
     }
 }
 
