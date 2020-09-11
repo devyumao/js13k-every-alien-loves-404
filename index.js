@@ -213,10 +213,40 @@ var medium = {
     targetItem$: null,
     popupsEl$: getElementById('p'),
     lastUpdated$: Date.now(),
+    progress$: {
+        _clock$: null,
+        running$: false,
+        result$: null,
+    },
 
     init$() {
+        this.group$.layers.set(LAYER_EARTH);
         pivot.add(this.group$);
         // this.add$(UFO_PHI, UFO_THETA); // FIXME: temp
+    },
+
+    add$(phi, theta) {
+        var media = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 16, 16),
+            new THREE.MeshToonMaterial({ color: '#ff4d4f', transparent: true, opacity: 0.5 })
+        );
+        media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
+
+        media._viewed = Math.ceil(Math.random() * 10);
+        media._maxV = Math.ceil(Math.random() * 1e3);
+        
+        var popup = document.createElement('div');
+        popup.setAttribute('class', 'p');
+        this.popupsEl$.appendChild(popup);
+        media._p = popup;
+
+        medium.group$.add(media);
+    },
+
+    remove$(item) {
+        this.popupsEl$.removeChild(item._p);
+        item._p = null;
+        this.group$.remove(item);
     },
 
     update$() {
@@ -227,8 +257,8 @@ var medium = {
                 if (point) {
                     var sph = new THREE.Spherical(RADIUS_EARTH);
                     sph.setFromVector3(point.position);
-                    sph.phi += THREE.MathUtils.randFloatSpread(0.3);
-                    sph.theta += THREE.MathUtils.randFloatSpread(0.3);
+                    sph.phi += THREE.MathUtils.randFloatSpread(1);
+                    sph.theta += THREE.MathUtils.randFloatSpread(1);
                     this.add$(sph.phi, sph.theta);
                     track.remove(point);
                 }
@@ -243,15 +273,37 @@ var medium = {
     },
 
     updateTargetItem$() {
-        this.targetItem$ = this.minAngle$ < 0.1 ? getNearest(this.group$.children) : null;
+        this.targetItem$ = this.minAngle$ < 0.02 ? getNearest(this.group$.children) : null;
+        if (ufoState === UFO_STATES.lasing$) {
+            var progress = this.progress$;
+            if (keys[32]) {
+                if (!progress.running$) {
+                    this.runProgress$();
+                } else if (Date.now() - progress._clock$ >= 1e3) {
+                    this.stopProgress$();
+                    progress.result$ = true;
+                }
+            } else {
+                this.stopProgress$();
+                progress.result$ = false;
+            }
+        }
+    },
+
+    runProgress$() {
+        var { progress$, targetItem$ } = this;
+        progress$.running$ = true;
+        targetItem$._p.classList.add('l');
+        progress$._clock$ = Date.now();
+    },
+
+    stopProgress$() {
+        var { progress$, targetItem$ } = this;
+        targetItem$._p.classList.remove('l');
+        progress$.running$ = false;
     },
 
     updatePopups$() {
-        var { popupsEl$ } = this;
-        for (var i = 0; i < popupsEl$.children.length; ++i) {
-            popupsEl$.children[i]._using = false;
-        }
-
         var updateNumber = Date.now() - this.lastUpdated$ > 1e3;
         if (updateNumber) {
             this.lastUpdated$ = Date.now();
@@ -260,22 +312,11 @@ var medium = {
         this.group$.children.forEach(function (media) {
             var pos = worldToScreen(media);
             // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
-            var popup = media._popup;
-            if (!popup) {
-                popup = document.createElement('div');
-                popup.setAttribute('class', 'p');
-                popupsEl$.appendChild(popup);
-                media._popup = popup;
-                popup._media = media;
-            }
-
-            var width = popup.clientWidth;
-            var height = popup.clientHeight;
-
-            var style = popup.style;
-            style.left = Math.round(pos.x - width / 2) + 'px';
-            style.top = Math.round(pos.y - height) + 'px';
-            style.opacity = pos.z < 0 ? 0.2 : 1;
+            var popup = media._p;
+            var { style } = popup;
+            style.left = Math.round(pos.x) + 'px';
+            style.top = Math.round(pos.y + 10) + 'px';
+            style.opacity = pos.z < 5 ? 0.2 : 1;
 
             if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
                 // TODO: check media is not removed from mediaGroup
@@ -301,30 +342,7 @@ var medium = {
                     media._viewed += Math.ceil(Math.random() * media._maxV);
                 }
             }
-
-            popup._using = true;
         });
-
-        for (var j = 0; j < popupsEl$.children.length; ++j) {
-            var child = popupsEl$.children[j];
-            if (!child._using) {
-                popupsEl$.removeChild(child);
-                child._media._popup = null;
-            }
-        }
-    },
-
-    add$(phi, theta) {
-        var media = new THREE.Mesh(
-            new THREE.SphereGeometry(0.2, 16, 16),
-            new THREE.MeshBasicMaterial({ color: '#ff4d4f' })
-        );
-        media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
-
-        media._viewed = Math.ceil(Math.random() * 10);
-        media._maxV = Math.ceil(Math.random() * 1e3);
-
-        medium.group$.add(media);
     }
 };
 
@@ -415,44 +433,6 @@ var failMsg = {
         }
     }
 };
-
-var laserProgress = {
-    el$: document.getElementById('l'),
-    _clock$: null,
-    running$: false,
-    result$: null,
-
-    update$() {
-        if (ufoState === UFO_STATES.lasing$) {
-            if (keys[32]) {
-                if (!this.running$) {
-                    this.run$();
-                } else if (Date.now() - this._clock$ >= 1e3) {
-                    this.stop$();
-                    this.result$ = true;
-                }
-            } else {
-                this.stop$();
-                this.result$ = false;
-            }
-        }
-    },
-
-    run$() {
-        this.running$ = true;
-        this.el$.style.opacity = 1;
-        this.el$.style.borderLeftWidth = '14vh';
-        this._clock$ = Date.now();
-    },
-
-    stop$() {
-        this.el$.style.opacity = 0;
-        this.running$ = false;
-        setTimeout(() => {
-            this.el$.style.borderLeftWidth = '0';
-        }, 100);
-    }
-}
 
 
 main();
@@ -651,22 +631,18 @@ function createUfo() {
         new THREE.MeshToonMaterial({ color: '#bfbfbf' })
     );
     ufoCore.position.y = -0.05;
-    ufo.add(ufoCore);
 
     var ufoPlate = new THREE.Mesh(
         new THREE.ConeGeometry(0.5, 0.25, 32),
         // new THREE.MeshPhongMaterial({ color: '#acacac', shininess: 0.2 })
         new THREE.MeshToonMaterial({ color: '#8c8c8c' })
     );
-    ufo.add(ufoPlate);
 
     ufoIndicator = new THREE.Mesh(
         new THREE.ConeGeometry(0.32, 0.16, 32),
         new THREE.MeshToonMaterial({ color: '#b7eb8f', transparent: true, opacity: 0 })
     );
     ufoIndicator.position.y = 0.047;
-    // ufoIndicator.layers.enable(LAYER_BLOOM);
-    ufo.add(ufoIndicator);
 
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.45, 0.8, 32),
@@ -674,7 +650,6 @@ function createUfo() {
     );
     ufoRay.position.y = -0.35;
     ufoRay.scale.set(0, 0, 0);
-    ufo.add(ufoRay);
 
     ufoLaser = new THREE.Mesh(
         new THREE.CylinderGeometry(0.15, 0.15, 0.76, 32),
@@ -682,11 +657,12 @@ function createUfo() {
     );
     ufoLaser.position.y = -0.4;
     ufoLaser.scale.set(0, 0, 0);
-    ufo.add(ufoLaser);
 
     ufo.position.set(...ufoInGamePosition.toArray());
     ufo.rotation.x = 1;
     ufo.layers.set(LAYER_DEFAULT);
+
+    ufo.add(ufoCore, ufoPlate, ufoIndicator, ufoRay, ufoLaser);
     scene.add(ufo);
 
     ufoOriginRotation = ufo.rotation.clone();
@@ -1066,7 +1042,6 @@ function animate() {
 
         wiggler.update$();
         failMsg.update$();
-        laserProgress.update$();
 
         ufoMixer.update(delta);
         ufoRayMixer.update(delta);
@@ -1367,8 +1342,8 @@ function updateUfoState() {
             }
             break;
         case UFO_STATES.lasing$:
-            if (!laserProgress.running$) {
-                ufoState = laserProgress.result$ ? UFO_STATES.laseCompleted$ : UFO_STATES.reducingLaser$;
+            if (!medium.progress$.running$) {
+                ufoState = medium.progress$.result$ ? UFO_STATES.laseCompleted$ : UFO_STATES.reducingLaser$;
             }
             break;
         case UFO_STATES.reducingLaser$:

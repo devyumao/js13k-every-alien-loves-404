@@ -31,22 +31,49 @@
         }
         .p {
             position: absolute;
-            padding: 5px 8px;
+            padding: 3px 8px;
             /* border: 3px solid salmon; */
-            background-color: #574AB7;
+            background: #574AB7;
             color: white;
             border-radius: 4px;
             transition: opacity 0.5s;
             font-size: 12px;
-            /* display: none; */
+            transform: translate(-50%);
+        }
+        .p::before {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 8px;
+            height: 8px;
+            background: inherit;
+            content: '';
+        }
+        .p::after {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0;
+            background: #eee;
+            content: '';
+            transition: width 0.2s linear;
         }
         .p.y {
-            background-color: #A641E7;
+            background: #A641E7;
             font-size: 14px;
         }
         .p.r {
-            background-color: #DD4391;
+            background: #DD4391;
             font-size: 14px;
+        }
+        .p.l {
+            overflow: hidden;
+        }
+        .p.l::after {
+            width: 100%;
+            transition: width 1s linear;
         }
         #a {
             text-align: center;
@@ -135,21 +162,8 @@
             transition: all 0.15s;
             opacity: 0;
         }
-        #l {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 14vh;
-            height: 3vh;
-            background: #eee;
-            border-left: 0 solid #dd4491;
-            transform: translateX(-50%);
-            box-sizing: border-box;
-            opacity: 0;
-            transition: opacity 0.1s, border 1s linear;
-        }
         @keyframes wiggle {
-            100% {
+            to {
                 left: 100%;
             }
         }
@@ -181,7 +195,6 @@
             <div id="wp"></div>
         </div>
         <div id="f">?</div>
-        <div id="l"></div>
         <canvas id="u"></canvas>
     </div>
     <script src="./node_modules/three/build/three.js"></script>
