@@ -65,7 +65,7 @@ var GAME_STATES = {
 var isGameWin = 0; // should be used only when game over
 var BEFORE_GAME_ANIMATION_DURATION = 3;
 // DEBUG
-// BEFORE_GAME_ANIMATION_DURATION = 0;
+BEFORE_GAME_ANIMATION_DURATION = 0;
 // DEBUG END
 var GAME_OVER_ANIMATION_DURATION = 60;
 
@@ -239,7 +239,7 @@ var medium = {
     },
 
     remove$(item) {
-        this.popupsEl$.removeChild(item._p);
+        this.popupsEl$.removeChild(item._p)
         item._p = null;
         this.group$.remove(item);
     },
@@ -275,12 +275,10 @@ var medium = {
                 if (!progress.running$) {
                     this.runProgress$();
                 } else if (Date.now() - progress._clock$ >= 1e3) {
-                    this.stopProgress$();
-                    progress.result$ = true;
+                    this.finishProgress$();
                 }
             } else {
                 this.stopProgress$();
-                progress.result$ = false;
             }
         }
     },
@@ -296,6 +294,17 @@ var medium = {
         var { progress$, targetItem$ } = this;
         targetItem$._p.classList.remove('l');
         progress$.running$ = false;
+        progress$.result$ = false;
+    },
+
+    finishProgress$() {
+        var { progress$, targetItem$ } = this;
+        progress$.running$ = false;
+        progress$.result$ = true;
+        targetItem$._p.classList.add('f');
+        targetItem$.visible = false;
+        targetItem$._d = true;
+        setTimeout(() => this.remove$(targetItem$), 3e3);
     },
 
     updatePopups$() {
@@ -313,7 +322,7 @@ var medium = {
             style.top = Math.round(pos.y + 10) + 'px';
             style.opacity = pos.z < 5 ? 0.2 : 1;
 
-            if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
+            if (!media._d && updateNumber && Math.random() > 0.8 || !popup.innerText) {
                 // TODO: check media is not removed from mediaGroup
 
                 if (media._viewed >= 1e6) {
@@ -351,7 +360,9 @@ function calcMinAngle(children) {
 
 function getNearest(children) {
     return children.reduce(function (a, b) {
-        if (!a || b.userData.angle < a.userData.angle) return b;
+        if (!b._d && (!a || b.userData.angle < a.userData.angle)) {
+            return b;
+        }
         return a;
     }, null);
 }
@@ -1256,6 +1267,12 @@ function updateUfoState() {
                 ufoState = UFO_STATES.reducingRay$;
             }
             break;
+        case UFO_STATES.takingSpec$:
+        case UFO_STATES.reducingRay$:
+            if (ufoRay.scale.y <= 0) {
+                ufoState = UFO_STATES.idle$;
+            }
+            break;
         case UFO_STATES.increasingLaser$:
             if (keys[32]) {
                 if (ufoLaser.scale.y >= 1) {
@@ -1267,17 +1284,11 @@ function updateUfoState() {
             break;
         case UFO_STATES.lasing$:
             if (!medium.progress$.running$) {
-                ufoState = medium.progress$.result$ ? UFO_STATES.laseCompleted$ : UFO_STATES.reducingLaser$;
+                ufoState = UFO_STATES.reducingLaser$
             }
             break;
         case UFO_STATES.reducingLaser$:
-            if (!keys[32] && ufoLaser.scale.y <= 0) {
-                ufoState = UFO_STATES.idle$;
-            }
-            break;
-        case UFO_STATES.takingSpec$:
-        case UFO_STATES.reducingRay$:
-            if (ufoRay.scale.y <= 0) {
+            if (ufoLaser.scale.y <= 0) {
                 ufoState = UFO_STATES.idle$;
             }
             break;
