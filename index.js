@@ -1,6 +1,9 @@
 (function (THREE, window, document) {
 
+try {
+
 // $$$_INJECT_VR_$$$
+// $$$_INJECT_EMOJI_$$$
 
 var getElementById = function (id) {
     return document.getElementById(id);
@@ -8,6 +11,8 @@ var getElementById = function (id) {
 
 var STR_BLOCK = 'block';
 var STR_NONE = 'none';
+var STR_DIV = 'div';
+var STR_IMG = 'img';
 var COLOR_WHITE = '#fff';
 
 var W = window.innerWidth;
@@ -135,6 +140,8 @@ var colors = {
     land$: '#9be889'
 };
 
+var tweetList = [];
+
 // $$$_INJECT_AUDIO_$$$
 
 // DEBUG
@@ -232,7 +239,6 @@ var medium = {
         }
 
         this.minAngle$ = calcMinAngle(this.group$.children);
-        // console.log(this.minAngle$);
         this.updateTargetItem$();
         this.updatePopups$();
     },
@@ -257,9 +263,8 @@ var medium = {
             // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
             var popup = media._popup;
             if (!popup) {
-                popup = document.createElement('div');
+                popup = createElement(STR_DIV, popupsEl$);
                 popup.setAttribute('class', 'p');
-                popupsEl$.appendChild(popup);
                 media._popup = popup;
                 popup._media = media;
             }
@@ -457,6 +462,8 @@ function main() {
     initDebug();
     // DEBUG END
 
+    initEmoji();
+
     initScene();
     initLight();
 
@@ -597,6 +604,72 @@ function initRenderer() {
     uiCtx = uiCanvas.getContext('2d');
 
     onWindowResize();
+}
+
+// DEBUG
+setTimeout(function () {
+    appendTweet();
+    appendTweet();
+    appendTweet();
+    appendTweet();
+    appendTweet();
+
+    var last = appendTweet();
+    setTweet404(last);
+
+    appendTweet();
+    appendTweet();
+    appendTweet();
+}, 10000);
+// DEBUG END
+
+function showTweets() {
+    var dom = document.getElementById('t');
+    dom.style.display = STR_BLOCK;
+}
+
+function hideTweets() {
+    var dom = document.getElementById('t');
+    dom.style.display = STR_NONE;
+}
+
+function appendTweet() {
+    var dom = document.getElementById('t');
+
+    var tweet = createElement(STR_DIV, dom, 'T');
+
+    var left = createElement(STR_DIV, tweet, 'l');
+
+    var avatar = createElement(STR_IMG, left, 'a');
+    avatar.setAttribute('src', getAvatar());
+
+    var viewed = createElement(STR_DIV, left, 'v');
+    viewed.innerText = '12K VIEWED';
+
+    var right = createElement(STR_DIV, tweet, 'r');
+
+    var name = createElement(STR_DIV, right, 'n');
+    name.innerText = '@' + getRandomName();
+
+    var content = createElement(STR_DIV, right, 'c');
+    content.innerText = getRandomTweet();
+
+    tweet.parentNode.scrollTop = tweet.offsetTop;
+
+    tweetList.push(tweet);
+    return tweet;
+}
+
+function setTweet404(dom) {
+    dom.className = 'T TT';
+
+    var viewed = dom.children[0].children[1];
+    viewed.innerText = 'NA';
+
+    var content = dom.children[1].children[1];
+    content.innerText = '(404) NOT FOUND';
+
+    dom.parentNode.scrollTop = dom.offsetTop;
 }
 
 function createEarth() {
@@ -1184,6 +1257,8 @@ function updateGameState(state, isWin) {
             b.className = 'f';
         }
 
+        hideTweets();
+
         setTimeout(function () {
             updateGameState(GAME_STATES.gameOver$);
         }, GAME_OVER_ANIMATION_DURATION * 1e3);
@@ -1201,6 +1276,7 @@ function updateGameState(state, isWin) {
 
         u.style.display = STR_BLOCK;
         updateCanvas();
+        showTweets();
     }
 }
 
@@ -1495,6 +1571,60 @@ function worldToScreen(obj) {
     pos.y = - (pos.y * heightHalf) + heightHalf;
     pos.z = z;
     return pos;
+}
+
+function createElement(node, parent, className) {
+    var dom = document.createElement(node);
+    if (parent) {
+        parent.appendChild(dom);
+    }
+    if (className) {
+        dom.className = className;
+    }
+    return dom;
+}
+
+function getRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function getRandomName() {
+    var names = ['ALICE', 'BOB', 'CAROL', 'DAVE', 'EVE', 'FRANK', 'GRACE', 'HEIDI'];
+    var verbes = ['LOVES', 'HATES', 'MISSING', 'THE'];
+    var nouns = ['CATS', 'DOGS', 'SLEEPING', 'OVILIA', 'YUMAO', 'YOU', 'JOKES', 'JS', 'GAMES'];
+    return getRandom(names) + '_' + getRandom(verbes) + '_' + getRandom(nouns);
+}
+
+function getRandomTweet() {
+    var preset = [
+        'OMG!',
+        'OH NO!',
+        'OH SH*T...',
+        'CAN YOU BELIEVE THIS?',
+        'TELL ME I HAVEN\'T WOKEN UP FROM MY DREAM.',
+        'ARE YOU KIDDING?',
+        'YOU WON\'T BELIEVE THIS!',
+        'I CAN\'T BELIEVE THIS EITHER... BUT',
+        'I CAN\'T BELIEVE MY OWN EYES',
+        '!!!',
+        ''
+    ]
+    var list = [
+        'THERE IS AN ALIEN IN MY BACKYARD?!!',
+        'AN ALIEN IN THE DOWNTOWN!',
+        'MY SON SAID THAT HE SAW AN ALIEN THIS MORNING. GUESS HOW OLD IS HE?',
+        'GUESS WHAT/WHO I SAW TODAY!',
+        'I SAW A UFO FLYING OVER MY HOUSE JUST NOW!',
+        'WHAT\'T THE *THING* FLYING OVER ME JUST NOW???',
+        'WAS IT AN ALIENE OR AEROPLANE?'
+    ];
+    return getRandom(preset) + ' ' + getRandom(list);
+}
+
+} catch (e) {
+    // DEBUG
+    console.error('Catched error:', e);
+    // DEBUG END
 }
 
 })(THREE, window, document);

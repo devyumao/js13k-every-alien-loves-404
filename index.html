@@ -160,6 +160,71 @@
             opacity: 0;
             transition: opacity 0.1s, border 1s linear;
         }
+        #t {
+            background: rgba(20,25,30,.7);
+            border-radius: 6px;
+            width: 300px;
+            position: absolute;
+            right: 15px;
+            top: 70px;
+            transition: 0.5s ease-in;
+            padding: 15px;
+            max-height: 500px;
+            overflow: scroll;
+            z-index: 100;
+            display: none;
+        }
+        .T {
+            margin: 5px 0;
+            min-height: 80px;
+            padding: 5px 0;
+            border-radius: 6px;
+        }
+        @keyframes hl {
+            0% {
+                background-color: #9be889;
+            }
+            100% {
+                background-color: transparent;
+            }
+        }
+        .TT {
+            background-color: #9be889;
+            animation: hl 3s forwards;
+        }
+        .TT .a {
+            border-color: #dd4491;
+        }
+        .a {
+            width: 40px;
+            height: 40px;
+            image-rendering: pixelated;
+            border: 2px solid #9be889;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .v {
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+            line-height: 13px;
+        }
+        .l {
+            width: 60px;
+            float: left;
+        }
+        .r {
+            margin-left: 70px;
+        }
+        .n {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .c {
+            font-size: 12px;
+            line-height: 16px;
+        }
         @keyframes wiggle {
             100% {
                 left: 100%;
@@ -189,6 +254,8 @@
             <h6>BY <a href="//github.com/devyumao">@DEVYUMAO</a> AND <a href="//github.com/Ovilia">@OVILIA</a></h6>
         </div>
 
+        <div id="t"></div>
+
         <div id="p"></div>
         <div id="w">
             <div id="wt"></div>
@@ -203,6 +270,7 @@
     <script src="./node_modules/stats.js/build/stats.min.js"></script>
     <script src="./vr-controls.js"></script>
     <script src="./audio.js"></script>
+    <script src="./emoji.js"></script>
     <script src="./index.js"></script>
 </body>
 </html>

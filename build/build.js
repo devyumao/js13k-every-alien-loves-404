@@ -49,7 +49,8 @@ function buildHtml() {
         '<script src="./node_modules/stats.js/build/stats.min.js"></script>',
         '<script src="./node_modules/dat.gui/build/dat.gui.js"></script>',
         '<script src="./audio.js"></script>',
-        '<script src="./vr-controls.js"></script>'
+        '<script src="./vr-controls.js"></script>',
+        '<script src="./emoji.js"></script>'
     ].forEach(txt => {
         htmlSrc = htmlSrc.replace(txt, '');
     });
@@ -73,9 +74,11 @@ function buildJs() {
     let indexSrc = fs.readFileSync('./index.js', 'utf-8');
     let audioSrc = fs.readFileSync('./audio.js', 'utf-8');
     let vrSrc = fs.readFileSync('./vr-controls.js', 'utf-8');
+    let emojiSrc = fs.readFileSync('./emoji.js', 'utf-8');
 
     indexSrc = indexSrc.replace('// $$$_INJECT_AUDIO_$$$', audioSrc);
     indexSrc = indexSrc.replace('// $$$_INJECT_VR_$$$', vrSrc);
+    indexSrc = indexSrc.replace('// $$$_INJECT_EMOJI_$$$', emojiSrc);
 
     // Remove debug
     let indexContent = '';
