@@ -167,7 +167,9 @@ var specimens = {
     },
 
     add$(phi, theta) {
-        this.group$.add(createPoint(phi, theta, '#ffadd2'));
+        var point = createPoint(phi, theta, '#ffadd2');
+        point.visible = false;
+        this.group$.add(point);
     },
 
     remove$(item) {
@@ -193,6 +195,7 @@ var specimens = {
             vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
             var pos = pivot.worldToLocal(vec);
             this.targetItem$.position.set(pos.x, pos.y, pos.z);
+            this.targetItem$.visible = true;
         }
 
         if (this.targetItem$) {
@@ -203,6 +206,7 @@ var specimens = {
             } else {
                 this.remove$(this.targetItem$);
                 this.targetItem$ = null;
+                updateCanvas();
             }
         }
     }
@@ -382,9 +386,13 @@ var wiggler = {
 
     result$: null,
 
-    initData$() {
-        this.targetStart$ = 6;
-        this.targetEnd$ = 8;
+    initData$(angle) {
+        var targetLen = 0.6 + 0.06 / (0.02 + angle);
+        this.targetStart$ = (this.length$ - targetLen) / 2;
+        this.targetEnd$ = this.length$ - this.targetStart$;
+        var style = this.targetEl$.style;
+        style.marginLeft = this.targetStart$ + 'vh';
+        style.width = targetLen + 'vh';
     },
 
     checkResult$() {
@@ -399,7 +407,7 @@ var wiggler = {
             case UFO_STATES.raying$:
                 this.el$.style.opacity = 1;
                 if (!keys[32]) {
-                    this.result$ = wiggler.checkResult$();
+                    this.result$ = this.checkResult$();
                 }
                 break;
             case UFO_STATES.idle$:
@@ -1040,7 +1048,7 @@ function animate() {
     if (gameState === GAME_STATES.inGame$) {
         updateCamera();
 
-        updateVelocity();
+        updateVelocity(delta);
         updateMovement();
 
         updateUfo(delta);
@@ -1149,43 +1157,45 @@ function updateClouds(delta) {
     });
 }
 
-function updateVelocity() {
+function updateVelocity(delta) {
+    var acc = ANGULAR_ACC * delta / 0.02;
+
     if (keys[32]) {
-        slowDownAngularVel('phi');
-        slowDownAngularVel('theta');
+        slowDownAngularVel(acc, 'phi');
+        slowDownAngularVel(acc, 'theta');
         return;
     }
 
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
         if (angularVel.phi < ANGULAR_VEL) {
-            angularVel.phi = Math.min(angularVel.phi + ANGULAR_ACC, ANGULAR_VEL);
+            angularVel.phi = Math.min(angularVel.phi + acc, ANGULAR_VEL);
         }
     } else if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
         if (angularVel.phi > -ANGULAR_VEL) {
-            angularVel.phi = Math.max(angularVel.phi - ANGULAR_ACC, -ANGULAR_VEL);
+            angularVel.phi = Math.max(angularVel.phi - acc, -ANGULAR_VEL);
         }
     } else {
-        slowDownAngularVel('phi');
+        slowDownAngularVel(acc, 'phi');
     }
 
     if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
         if (angularVel.theta < ANGULAR_VEL) {
-            angularVel.theta = Math.min(angularVel.theta + ANGULAR_ACC, ANGULAR_VEL);
+            angularVel.theta = Math.min(angularVel.theta + acc, ANGULAR_VEL);
         }
     } else if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
         if (angularVel.theta > -ANGULAR_VEL) {
-            angularVel.theta = Math.max(angularVel.theta - ANGULAR_ACC, -ANGULAR_VEL);
+            angularVel.theta = Math.max(angularVel.theta - acc, -ANGULAR_VEL);
         }
     } else {
-        slowDownAngularVel('theta');
+        slowDownAngularVel(acc, 'theta');
     }
 }
 
-function slowDownAngularVel(phiOrTheta) {
+function slowDownAngularVel(acc, phiOrTheta) {
     if (angularVel[phiOrTheta] > 0) {
-        angularVel[phiOrTheta] = Math.max(angularVel[phiOrTheta] - ANGULAR_ACC, 0);
+        angularVel[phiOrTheta] = Math.max(angularVel[phiOrTheta] - acc, 0);
     } else if (angularVel[phiOrTheta] < 0) {
-        angularVel[phiOrTheta] = Math.min(angularVel[phiOrTheta] + ANGULAR_ACC, 0);
+        angularVel[phiOrTheta] = Math.min(angularVel[phiOrTheta] + acc, 0);
     }
 }
 
@@ -1322,7 +1332,7 @@ function updateUfoState() {
                 if (ufoRay.scale.y >= 1) {
                     if (specimens.available$) {
                         ufoState = UFO_STATES.raying$;
-                        wiggler.initData$();
+                        wiggler.initData$(specimens.minAngle$);
                     } else {
                         ufoState = UFO_STATES.rayFailed$;
                     }
@@ -1478,13 +1488,13 @@ function updateCanvas() {
 
     var margin = [20, 30];
     var textColor = '#ddd';
-    drawText('DNA SAMPLES COLLECTED (4/10)', margin[0], margin[1], textColor, 16);
+    drawText(`DNA SAMPLES COLLECTED`, margin[0], margin[1], textColor, 16);
 
     var radius = 9;
     var d = radius * 2;
     var circleMargin = 4;
     var circleTop = 42;
-    var collectedCount = 4;
+    var collectedCount = SPECIMENS_AMOUNT - specimens.count$();
     var emptyColor = 'rgba(200,200,200,.1)';
     for (var i = 0; i < 10; ++i) {
         var color = i < collectedCount ? colors.oceanLevels$[0] : emptyColor;
