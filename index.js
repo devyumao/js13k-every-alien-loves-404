@@ -1,4 +1,4 @@
-(function (THREE, window, document) {
+(function (THREE, window, document, PI) {
 
 try {
 
@@ -23,15 +23,16 @@ var RADIUS_LAND = 10.1;
 var RADIUS_OCEAN = 9.8;
 var RADIUS_UFO_POS = 11;
 var SPECIMENS_AMOUNT = 10;
-var ANGULAR_VEL = Math.PI / 600;
+var ANGULAR_VEL = PI / 600;
 var ANGULAR_ACC = ANGULAR_VEL / 30;
-var UFO_PHI = Math.PI * 0.42;
+var UFO_PHI = PI * 0.42;
 var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
+var MAX_MEDIUM_PRESSURE = 1e7;
 var SPECIMEN_NEAR_THRES = 0.5;
 var SPECIMEN_AVAILABLE_THRES = 0.045;
 var CAMERA_DISTANT_Z = 20;
@@ -70,7 +71,7 @@ var GAME_STATES = {
 var isGameWin = 0; // should be used only when game over
 var BEFORE_GAME_ANIMATION_DURATION = 3;
 // DEBUG
-// BEFORE_GAME_ANIMATION_DURATION = 0;
+BEFORE_GAME_ANIMATION_DURATION = 0;
 // DEBUG END
 var GAME_OVER_ANIMATION_DURATION = 60;
 
@@ -165,7 +166,9 @@ var specimens = {
     },
 
     add$(phi, theta) {
-        this.group$.add(createPoint(phi, theta, '#ffadd2'));
+        var point = createPoint(phi, theta, '#ffadd2');
+        point.visible = false;
+        this.group$.add(point);
     },
 
     remove$(item) {
@@ -191,6 +194,7 @@ var specimens = {
             vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
             var pos = pivot.worldToLocal(vec);
             this.targetItem$.position.set(pos.x, pos.y, pos.z);
+            this.targetItem$.visible = true;
         }
 
         if (this.targetItem$) {
@@ -201,6 +205,7 @@ var specimens = {
             } else {
                 this.remove$(this.targetItem$);
                 this.targetItem$ = null;
+                updateCanvas();
             }
         }
     }
@@ -241,9 +246,13 @@ var medium = {
     },
 
     remove$(item) {
-        this.popupsEl$.removeChild(item._p);
+        this.popupsEl$.removeChild(item._p)
         item._p = null;
         this.group$.remove(item);
+    },
+
+    getTotalViewed$() {
+        return this.group$.children.reduce((prev, curr) => prev + curr._viewed, 0);
     },
 
     update$() {
@@ -276,12 +285,10 @@ var medium = {
                 if (!progress.running$) {
                     this.runProgress$();
                 } else if (Date.now() - progress._clock$ >= 1e3) {
-                    this.stopProgress$();
-                    progress.result$ = true;
+                    this.finishProgress$();
                 }
             } else {
                 this.stopProgress$();
-                progress.result$ = false;
             }
         }
     },
@@ -297,6 +304,18 @@ var medium = {
         var { progress$, targetItem$ } = this;
         targetItem$._p.classList.remove('l');
         progress$.running$ = false;
+        progress$.result$ = false;
+    },
+
+    finishProgress$() {
+        var { progress$, targetItem$ } = this;
+        progress$.running$ = false;
+        progress$.result$ = true;
+        targetItem$._p.classList.add('f');
+        targetItem$.visible = false;
+        targetItem$._d = true;
+        setTimeout(() => this.remove$(targetItem$), 3e3);
+        updateCanvas();
     },
 
     updatePopups$() {
@@ -305,7 +324,9 @@ var medium = {
             this.lastUpdated$ = Date.now();
         }
 
-        this.group$.children.forEach(function (media) {
+        var updated = false;
+
+        this.group$.children.forEach(media => {
             var pos = worldToScreen(media);
             // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
             var popup = media._p;
@@ -314,22 +335,7 @@ var medium = {
             style.top = Math.round(pos.y + 10) + 'px';
             style.opacity = pos.z < 5 ? 0.2 : 1;
 
-            if (updateNumber && Math.random() > 0.8 || !popup.innerText) {
-                // TODO: check media is not removed from mediaGroup
-
-                if (media._viewed >= 1e6) {
-                    const text = Math.round(media._viewed / 1e5) / 10 + 'M';
-                    popup.setAttribute('class', 'p r');
-                    popup.innerText = text + ' VIEWED';
-                }
-                else if (media._viewed >= 1e3) {
-                    const text = Math.round(media._viewed / 100) / 10 + 'K';
-                    popup.setAttribute('class', 'p y');
-                    popup.innerText = text + ' VIEWED';
-                }
-                else {
-                    popup.innerText = media._viewed + ' VIEWED';
-                }
+            if (!media._d && ((updateNumber && Math.random() > 0.8) || !popup.innerText)) {
                 if (Math.random() > 0.95) {
                     // TODO: not so randomly
                     media._viewed += Math.ceil(Math.random() * 2e6);
@@ -337,8 +343,29 @@ var medium = {
                 else {
                     media._viewed += Math.ceil(Math.random() * media._maxV);
                 }
+                this.updateText$(media);
+                updated = true;
             }
         });
+
+        updated && updateCanvas();
+    },
+
+    updateText$(item) {
+        var popup = item._p;
+        if (item._viewed >= 1e6) {
+            const text = Math.round(item._viewed / 1e5) / 10 + 'M';
+            popup.setAttribute('class', 'p r');
+            popup.innerText = text + ' VIEWED';
+        }
+        else if (item._viewed >= 1e3) {
+            const text = Math.round(item._viewed / 100) / 10 + 'K';
+            popup.setAttribute('class', 'p y');
+            popup.innerText = text + ' VIEWED';
+        }
+        else {
+            popup.innerText = item._viewed + ' VIEWED';
+        }
     }
 };
 
@@ -352,7 +379,9 @@ function calcMinAngle(children) {
 
 function getNearest(children) {
     return children.reduce(function (a, b) {
-        if (!a || b.userData.angle < a.userData.angle) return b;
+        if (!b._d && (!a || b.userData.angle < a.userData.angle)) {
+            return b;
+        }
         return a;
     }, null);
 }
@@ -369,9 +398,13 @@ var wiggler = {
 
     result$: null,
 
-    initData$() {
-        this.targetStart$ = 6;
-        this.targetEnd$ = 8;
+    initData$(angle) {
+        var targetLen = 0.6 + 0.06 / (0.02 + angle);
+        this.targetStart$ = (this.length$ - targetLen) / 2;
+        this.targetEnd$ = this.length$ - this.targetStart$;
+        var style = this.targetEl$.style;
+        style.marginLeft = this.targetStart$ + 'vh';
+        style.width = targetLen + 'vh';
     },
 
     checkResult$() {
@@ -386,7 +419,7 @@ var wiggler = {
             case UFO_STATES.raying$:
                 this.el$.style.opacity = 1;
                 if (!keys[32]) {
-                    this.result$ = wiggler.checkResult$();
+                    this.result$ = this.checkResult$();
                 }
                 break;
             case UFO_STATES.idle$:
@@ -544,7 +577,7 @@ function initLight() {
     lights.key.castShadow = true;
     scene.add(lights.key);
 
-    lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, Math.PI / 12, 0.5, 2);
+    lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, PI / 12, 0.5, 2);
     lights.spot.position.set(0, 5, 20);
     lights.spot.lookAt(0, 0, 0);
     lights.spot.shadow.mapSize.width = 1024;
@@ -656,7 +689,7 @@ function createEarth() {
             x: geo.vertices[i].x,
             y: geo.vertices[i].y,
             z: geo.vertices[i].z,
-            delta: Math.random() * Math.PI * 2
+            delta: Math.random() * PI * 2
         });
     }
 
@@ -906,14 +939,14 @@ function createSky() {
 
         var radius = R * (Math.random() * 2 + 1);
         var sph = new THREE.Spherical(radius);
-        sph.phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
-        sph.theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        sph.phi = THREE.MathUtils.randFloatSpread(PI * 2);
+        sph.theta = THREE.MathUtils.randFloatSpread(PI * 2);
         mesh.position.setFromSphericalCoords(radius, sph.phi, sph.theta);
 
         mesh.rotation.set(
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2
+            Math.random() * PI * 2,
+            Math.random() * PI * 2,
+            Math.random() * PI * 2
         );
 
         mesh.scale.setScalar(THREE.MathUtils.randFloatSpread(r));
@@ -933,20 +966,20 @@ function createClouds() {
     });
     for (var cluster = 0; cluster < 50; ++cluster) {
         var cnt = 5;
-        var phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
-        var theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        var phi = THREE.MathUtils.randFloatSpread(PI * 2);
+        var theta = THREE.MathUtils.randFloatSpread(PI * 2);
         var scale = Math.random() * 0.5 + 0.8;
         for (var i = 0; i < cnt; ++i) {
             var r = [0.4, 0.6, 0.8, 0.4][i] + THREE.MathUtils.randFloatSpread(0.2);
             var geo = new THREE.IcosahedronGeometry(r * scale, 0);
             var mesh = new THREE.Mesh(geo, mat);
-            phi += 0.04 + THREE.MathUtils.randFloatSpread(Math.PI * 0.03);
+            phi += 0.04 + THREE.MathUtils.randFloatSpread(PI * 0.03);
             var dR = THREE.MathUtils.randFloatSpread(0.1);
             mesh.position.setFromSphericalCoords(R + dR, phi, theta);
             mesh.rotation.set(
-                THREE.MathUtils.randFloatSpread(Math.PI * 2),
-                THREE.MathUtils.randFloatSpread(Math.PI * 2),
-                THREE.MathUtils.randFloatSpread(Math.PI * 2)
+                THREE.MathUtils.randFloatSpread(PI * 2),
+                THREE.MathUtils.randFloatSpread(PI * 2),
+                THREE.MathUtils.randFloatSpread(PI * 2)
             )
             mesh.layers.set(LAYER_EARTH);
             clouds.add(mesh);
@@ -1027,7 +1060,7 @@ function animate() {
     if (gameState === GAME_STATES.inGame$) {
         updateCamera();
 
-        updateVelocity();
+        updateVelocity(delta);
         updateMovement();
 
         updateUfo(delta);
@@ -1136,43 +1169,45 @@ function updateClouds(delta) {
     });
 }
 
-function updateVelocity() {
+function updateVelocity(delta) {
+    var acc = ANGULAR_ACC * delta / 0.02;
+
     if (keys[32]) {
-        slowDownAngularVel('phi');
-        slowDownAngularVel('theta');
+        slowDownAngularVel(acc, 'phi');
+        slowDownAngularVel(acc, 'theta');
         return;
     }
 
     if (keys[87] /* W */ || keys[38] /* ArrowUp */) {
         if (angularVel.phi < ANGULAR_VEL) {
-            angularVel.phi = Math.min(angularVel.phi + ANGULAR_ACC, ANGULAR_VEL);
+            angularVel.phi = Math.min(angularVel.phi + acc, ANGULAR_VEL);
         }
     } else if (keys[83] /* S */ || keys[40] /* ArrowDown */) {
         if (angularVel.phi > -ANGULAR_VEL) {
-            angularVel.phi = Math.max(angularVel.phi - ANGULAR_ACC, -ANGULAR_VEL);
+            angularVel.phi = Math.max(angularVel.phi - acc, -ANGULAR_VEL);
         }
     } else {
-        slowDownAngularVel('phi');
+        slowDownAngularVel(acc, 'phi');
     }
 
     if (keys[65] /* A */ || keys[37] /* ArrowLeft */) {
         if (angularVel.theta < ANGULAR_VEL) {
-            angularVel.theta = Math.min(angularVel.theta + ANGULAR_ACC, ANGULAR_VEL);
+            angularVel.theta = Math.min(angularVel.theta + acc, ANGULAR_VEL);
         }
     } else if (keys[68] /* D */ || keys[39] /* ArrowRight */) {
         if (angularVel.theta > -ANGULAR_VEL) {
-            angularVel.theta = Math.max(angularVel.theta - ANGULAR_ACC, -ANGULAR_VEL);
+            angularVel.theta = Math.max(angularVel.theta - acc, -ANGULAR_VEL);
         }
     } else {
-        slowDownAngularVel('theta');
+        slowDownAngularVel(acc, 'theta');
     }
 }
 
-function slowDownAngularVel(phiOrTheta) {
+function slowDownAngularVel(acc, phiOrTheta) {
     if (angularVel[phiOrTheta] > 0) {
-        angularVel[phiOrTheta] = Math.max(angularVel[phiOrTheta] - ANGULAR_ACC, 0);
+        angularVel[phiOrTheta] = Math.max(angularVel[phiOrTheta] - acc, 0);
     } else if (angularVel[phiOrTheta] < 0) {
-        angularVel[phiOrTheta] = Math.min(angularVel[phiOrTheta] + ANGULAR_ACC, 0);
+        angularVel[phiOrTheta] = Math.min(angularVel[phiOrTheta] + acc, 0);
     }
 }
 
@@ -1309,7 +1344,7 @@ function updateUfoState() {
                 if (ufoRay.scale.y >= 1) {
                     if (specimens.available$) {
                         ufoState = UFO_STATES.raying$;
-                        wiggler.initData$();
+                        wiggler.initData$(specimens.minAngle$);
                     } else {
                         ufoState = UFO_STATES.rayFailed$;
                     }
@@ -1328,6 +1363,12 @@ function updateUfoState() {
                 ufoState = UFO_STATES.reducingRay$;
             }
             break;
+        case UFO_STATES.takingSpec$:
+        case UFO_STATES.reducingRay$:
+            if (ufoRay.scale.y <= 0) {
+                ufoState = UFO_STATES.idle$;
+            }
+            break;
         case UFO_STATES.increasingLaser$:
             if (keys[32]) {
                 if (ufoLaser.scale.y >= 1) {
@@ -1339,17 +1380,11 @@ function updateUfoState() {
             break;
         case UFO_STATES.lasing$:
             if (!medium.progress$.running$) {
-                ufoState = medium.progress$.result$ ? UFO_STATES.laseCompleted$ : UFO_STATES.reducingLaser$;
+                ufoState = UFO_STATES.reducingLaser$
             }
             break;
         case UFO_STATES.reducingLaser$:
-            if (!keys[32] && ufoLaser.scale.y <= 0) {
-                ufoState = UFO_STATES.idle$;
-            }
-            break;
-        case UFO_STATES.takingSpec$:
-        case UFO_STATES.reducingRay$:
-            if (ufoRay.scale.y <= 0) {
+            if (ufoLaser.scale.y <= 0) {
                 ufoState = UFO_STATES.idle$;
             }
             break;
@@ -1469,13 +1504,13 @@ function updateCanvas() {
 
     var margin = [20, 30];
     var textColor = '#ddd';
-    drawText('DNA SAMPLES COLLECTED (4/10)', margin[0], margin[1], textColor, 16);
+    drawText(`DNA SAMPLES COLLECTED`, margin[0], margin[1], textColor, 16);
 
     var radius = 9;
     var d = radius * 2;
     var circleMargin = 4;
     var circleTop = 42;
-    var collectedCount = 4;
+    var collectedCount = SPECIMENS_AMOUNT - specimens.count$();
     var emptyColor = 'rgba(200,200,200,.1)';
     for (var i = 0; i < 10; ++i) {
         var color = i < collectedCount ? colors.oceanLevels$[0] : emptyColor;
@@ -1487,7 +1522,7 @@ function updateCanvas() {
     drawText('PUBLIC PRESSURE', rightStart + 50, margin[1], textColor, 16);
     drawCircle(rightStart, circleTop, barWidth, 8, 2, emptyColor);
 
-    var peoplePercent = 0.7;
+    var peoplePercent = Math.min(medium.getTotalViewed$(), MAX_MEDIUM_PRESSURE) / MAX_MEDIUM_PRESSURE;
     drawCircle(rightStart, circleTop, barWidth * peoplePercent, 8, 2, colors.primary$, 1);
 
     function drawText(text, x, y, color, fontSize) {
@@ -1532,7 +1567,7 @@ function getVectorFromSphCoord(radius, phi, theta) {
 }
 
 function randRad() {
-    return THREE.MathUtils.randFloatSpread(2 * Math.PI);
+    return THREE.MathUtils.randFloatSpread(2 * PI);
 }
 
 function worldToScreen(obj) {
@@ -1602,4 +1637,4 @@ function getRandomTweet() {
     // DEBUG END
 }
 
-})(THREE, window, document);
+})(THREE, window, document, Math.PI);
