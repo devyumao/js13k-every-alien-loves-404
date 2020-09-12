@@ -191,9 +191,7 @@ var specimens = {
         if (ufoState === UFO_STATES.takingSpec$ && this.available$ && !this.targetItem$) {
             this.targetItem$ = getNearest(this.group$.children);
             if (!this.targetItem$) return;
-            var vec = new THREE.Vector3();
-            vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
-            var pos = pivot.worldToLocal(vec);
+            var pos = worldToLocal(RADIUS_EARTH, UFO_PHI, UFO_THETA);
             this.targetItem$.position.set(pos.x, pos.y, pos.z);
             this.targetItem$.visible = true;
         }
@@ -265,15 +263,18 @@ var medium = {
     },
 
     update$() {
+        if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
+
         if (track.children.length <= MAX_MEDIUM) {
-            var key = Math.ceil(pathLength / 15);
-            if (!trackMediaMap[key]) {
+            var key = Math.floor(pathLength / 15);
+            if (key && !trackMediaMap[key]) {
                 var point = track.children[0];
                 if (point) {
-                    var sph = new THREE.Spherical(RADIUS_EARTH);
+                    var sph = new THREE.Spherical();
                     sph.setFromVector3(point.position);
-                    sph.phi += THREE.MathUtils.randFloatSpread(1);
-                    sph.theta += THREE.MathUtils.randFloatSpread(1);
+                    var rand = THREE.MathUtils.randFloatSpread(1)
+                    sph.phi += rand;
+                    sph.theta += rand;
                     this.add$(sph.phi, sph.theta);
                     track.remove(point);
                 }
@@ -325,6 +326,11 @@ var medium = {
         targetItem$._d = true;
         news$.set404$(targetItem$._n);
         setTimeout(() => this.remove$(targetItem$), 3e3);
+        if (tutorialState === TUTORIAL.AFTER_MEDIUM_APPEAR$
+            || tutorialState === TUTORIAL.AFTER_MEDIA$
+        ) {
+            setTimeout(() => setTutorial(TUTORIAL.AFTER_MEDIA_CAUGHT$), 1e3);
+        }
         updateCanvas();
     },
 
@@ -1046,12 +1052,6 @@ function initControl() {
                 updateGameState(GAME_STATES.gameOverEasingOut$);
             }
         }
-
-        if ([87, 38, 83, 40, 65, 37, 68, 39].indexOf(e.keyCode) > -1 && tutorialState === TUTORIAL.ASDW$) {
-            setTimeout(function () {
-                updateTutorial(TUTORIAL.AFTER_ASDW$);
-            }, 3000);
-        }
     });
     document.addEventListener('keyup', function (e) {
         keys[e.keyCode] = false;
@@ -1084,6 +1084,8 @@ function animate() {
         ufoMixer.update(delta);
         ufoRayMixer.update(delta);
         ufoLaserMixer.update(delta);
+
+        updateTutorial();
     }
     else if (gameState === GAME_STATES.welcomeEasingOut$) {
         updateBeforeGame(delta);
@@ -1301,7 +1303,7 @@ function updateGameState(state, isWin) {
         updateCanvas();
         showInGameUI();
 
-        updateTutorial(TUTORIAL.ASDW$);
+        setTutorial(TUTORIAL.ASDW$);
     }
 }
 
@@ -1519,9 +1521,8 @@ function pauseAction(action) {
 }
 
 function updatePathLength() {
-    var vec = new THREE.Vector3();
-    vec.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
-    var position = pivot.worldToLocal(vec);
+    if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
+    var position = worldToLocal(RADIUS_EARTH, UFO_PHI, UFO_THETA);
     if (lastPosition) {
         pathLength += position.distanceTo(lastPosition);
     }
@@ -1529,6 +1530,7 @@ function updatePathLength() {
 }
 
 function updateTrack() {
+    if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
     var now = Date.now();
     if (now - trackTime >= 3e3) {
         trackTime = now;
@@ -1586,6 +1588,55 @@ function updateCanvas() {
     }
 }
 
+function updateTutorial() {
+    switch (tutorialState) {
+        case TUTORIAL.ASDW$:
+            if (!tutorialStepComplated[TUTORIAL.ASDW$]
+                && [87, 38, 83, 40, 65, 37, 68, 39].some(key => keys[key])
+            ) {
+                tutorialStepComplated[TUTORIAL.ASDW$] = 1;
+                setTimeout(() => {
+                    setTutorial(TUTORIAL.AFTER_ASDW$);
+                }, 3e3);
+            }
+            break;
+
+        case TUTORIAL.AFTER_ASDW$:
+            tutorialStepComplated[TUTORIAL.AFTER_ASDW$]
+                && specimens.near$
+                && setTutorial(TUTORIAL.AFTER_DNA_NEAR$);
+            break;
+
+        case TUTORIAL.AFTER_DNA_NEAR$:
+            specimens.available$ && setTutorial(TUTORIAL.AFTER_DNA_AVAILABLE$);
+            break;
+
+        case TUTORIAL.AFTER_DNA_AVAILABLE$:
+            if (SPECIMENS_AMOUNT > specimens.count$()) {
+                setTutorial(TUTORIAL.NONE$);
+                setTimeout(() => {
+                    tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$] = 1;
+
+                    var sph = new THREE.Spherical();
+                    sph.setFromVector3(worldToLocal(RADIUS_UFO_POS, UFO_PHI - 0.5, UFO_THETA + 0.5));
+                    medium.add$(sph.phi, sph.theta);
+
+                    setTimeout(() => {
+                        setTutorial(TUTORIAL.AFTER_MEDIUM_APPEAR$);
+                    }, 1e3);
+                }, 3e3);
+            } else if (!specimens.available$) {
+                setTutorial(TUTORIAL.AFTER_DNA_NEAR$);
+            }
+            break;
+
+        case TUTORIAL.AFTER_MEDIUM_APPEAR$:
+            tutorialStepComplated[TUTORIAL.AFTER_MEDIUM_APPEAR$]
+                && setTutorial(TUTORIAL.AFTER_MEDIA$);
+            break;
+    }
+}
+
 // DEBUG
 function initDebug() {
     stats = new Stats();
@@ -1618,6 +1669,10 @@ function worldToScreen(obj) {
     pos.y = - (pos.y * heightHalf) + heightHalf;
     pos.z = z;
     return pos;
+}
+
+function worldToLocal(radius, phi, theta) {
+    return pivot.worldToLocal(getVectorFromSphCoord(radius, phi, theta));
 }
 
 function createElement(node, parent, className) {
