@@ -202,9 +202,11 @@ var specimens = {
                 sph.radius += 0.02;
                 this.targetItem$.position.setFromSpherical(sph);
             } else {
+                // Catch a DNA
                 this.remove$(this.targetItem$);
                 this.targetItem$ = null;
                 updateCanvas();
+                addEmojiDna();
             }
         }
     }
@@ -423,7 +425,7 @@ var news = {
         var left = createElement(STR_DIV, tweet, 'l');
 
         var avatar = createElement(STR_IMG, left, 'a');
-        avatar.setAttribute('src', getAvatar());
+        avatar.setAttribute('src', getEmojiAvatar());
 
         createElement(STR_DIV, left, 'v');
         // viewed.innerText = '12K VIEWED';
@@ -1245,7 +1247,8 @@ function updateGameState(state, isWin) {
         camera._v = cameraInGamePosition.clone().sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
-        ufoIndicator.position.y = -0.01;
+        ufoIndicator.position.y = -0.08;
+        ufoIndicator.scale.set(1.3, 1.3, 1);
         ufoIndicatorAction.stop();
 
         setTimeout(function () {
@@ -1635,6 +1638,12 @@ function updateTutorial() {
                 && setTutorial(TUTORIAL.AFTER_MEDIA$);
             break;
     }
+}
+
+function addEmojiDna() {
+    var h = document.getElementById('h');
+    var img = createElement(STR_IMG, h, 'a d');
+    img.setAttribute('src', getEmojiDna());
 }
 
 // DEBUG
