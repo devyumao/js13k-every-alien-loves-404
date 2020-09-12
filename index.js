@@ -486,6 +486,8 @@ var news = {
 
         this.show$();
 
+        audio.playEffect$(EFFECT_TWEET);
+
         // tweetList.push(tweet);
         return tweet;
     },
@@ -1422,6 +1424,7 @@ function updateUfoState() {
                         wiggler.initData$(specimens.minAngle$);
                     } else {
                         ufoState = UFO_STATES.rayFailed$;
+                        audio.playEffect$(EFEECT_FAIL);
                     }
                 }
             } else {
@@ -1431,6 +1434,7 @@ function updateUfoState() {
         case UFO_STATES.raying$:
             if (wiggler.result$ != null) {
                 ufoState = wiggler.result$ ? UFO_STATES.takingSpec$ : UFO_STATES.rayFailed$;
+                wiggler.result$ && audio.playEffect$(EFFECT_DNA);
             }
             break;
         case UFO_STATES.rayFailed$:
