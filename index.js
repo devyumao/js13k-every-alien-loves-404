@@ -293,8 +293,6 @@ var medium = {
                 this.stopProgress$();
             }
         }
-
-        console.log(this.getTotalViewed$());
     },
 
     runProgress$() {
