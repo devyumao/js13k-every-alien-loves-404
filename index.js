@@ -1667,7 +1667,7 @@ function updateTutorial() {
                     tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$] = 1;
 
                     var sph = new THREE.Spherical();
-                    sph.setFromVector3(worldToLocal(RADIUS_UFO_POS, UFO_PHI - 0.5, UFO_THETA + 0.5));
+                    sph.setFromVector3(worldToLocal(RADIUS_EARTH, UFO_PHI - 0.5, UFO_THETA - 0.5));
                     medium.add$(sph.phi, sph.theta);
 
                     setTimeout(() => {
