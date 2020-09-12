@@ -7,6 +7,8 @@ try {
 // $$$_INJECT_EMOJI_$$$
 // $$$_INJECT_TUTORIAL_$$$
 
+// tutorialCompleted = true;
+
 var getElementById = function (id) {
     return document.getElementById(id);
 };
@@ -34,7 +36,7 @@ var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
-var MAX_MEDIUM_PRESSURE = 1e7;
+var MAX_MEDIUM_PRESSURE = 5e6;
 var SPECIMEN_NEAR_THRES = 0.5;
 var SPECIMEN_AVAILABLE_THRES = 0.045;
 var CAMERA_DISTANT_Z = 20;
@@ -269,16 +271,22 @@ var medium = {
         this.targetItem$ = null;
     },
 
+    count$() {
+        return this.group$.children.length;
+    },
+
     add$(phi, theta) {
         var media = new THREE.Mesh(this.geometry$, this.material$);
         media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
 
-        media._viewed = Math.ceil(Math.random() * 10);
-        media._maxV = Math.ceil(Math.random() * 1e3);
+        media._viewed = getRandimInt(1, 10);
+        media._maxV = getRandimInt(100, 1e5);
 
         media._p = createElement(STR_DIV, this.popupsEl$, 'p');
 
         this.group$.add(media);
+
+        this.updateText$(media);
 
         var _n = this.news$.add$(media._viewed);
         media._n = _n;
@@ -292,14 +300,16 @@ var medium = {
     },
 
     getTotalViewed$() {
-        return this.group$.children.reduce((prev, curr) => prev + curr._viewed, 0);
+        return this.group$.children.reduce((prev, curr) => (
+            prev + (curr._d ? 0 :curr._viewed)
+        ), 0);
     },
 
     update$() {
         if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
 
-        if (track.children.length <= MAX_MEDIUM) {
-            var key = Math.floor(pathLength / 15);
+        if (this.count$() < MAX_MEDIUM) {
+            var key = Math.floor(pathLength / 30);
             if (key && !trackMediaMap[key]) {
                 var point = track.children[0];
                 if (point) {
@@ -321,7 +331,7 @@ var medium = {
     },
 
     updateTargetItem$() {
-        this.targetItem$ = this.minAngle$ < 0.02 ? getNearest(this.group$.children) : null;
+        this.targetItem$ = this.minAngle$ < 0.03 ? getNearest(this.group$.children) : null;
         if (ufoState === UFO_STATES.lasing$) {
             var progress = this.progress$;
             if (keys[32]) {
@@ -386,15 +396,9 @@ var medium = {
 
             if (!media._d
                 && (media !== this.targetItem$ || ufoState !== UFO_STATES.lasing$)
-                && ((updateNumber && Math.random() > 0.8) || !popup.innerText)
+                && updateNumber
             ) {
-                if (Math.random() > 0.95) {
-                    // TODO: not so randomly
-                    media._viewed += Math.ceil(Math.random() * 2e6);
-                }
-                else {
-                    media._viewed += Math.ceil(Math.random() * media._maxV);
-                }
+                media._viewed += getRandimInt(0, media._maxV);
                 this.updateText$(media);
                 this.news$.updateViewed$(media._n, popup.innerText);
                 updated = true;
@@ -415,7 +419,7 @@ var medium = {
             popup.setAttribute('class', 'p R');
             popup.innerText = text + ' VIEWED';
         }
-        else if (item._viewed >= 1e3) {
+        else if (item._viewed >= 1e4) {
             const text = Math.round(item._viewed / 100) / 10 + 'K';
             popup.setAttribute('class', 'p y');
             popup.innerText = text + ' VIEWED';
@@ -511,7 +515,7 @@ var wiggler = {
     result$: null,
 
     initData$(angle) {
-        var targetLen = 0.6 + 0.06 / (0.02 + angle);
+        var targetLen = 1.5 + 0.075 / (0.03 + angle);
         this.targetStart$ = (this.length$ - targetLen) / 2;
         this.targetEnd$ = this.length$ - this.targetStart$;
         var style = this.targetEl$.style;
@@ -1668,7 +1672,7 @@ function updateTutorial() {
                     tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$] = 1;
 
                     var sph = new THREE.Spherical();
-                    sph.setFromVector3(worldToLocal(RADIUS_UFO_POS, UFO_PHI - 0.5, UFO_THETA + 0.5));
+                    sph.setFromVector3(worldToLocal(RADIUS_EARTH, UFO_PHI - 0.5, UFO_THETA - 0.5));
                     medium.add$(sph.phi, sph.theta);
 
                     setTimeout(() => {
@@ -1768,6 +1772,10 @@ function getRandomName() {
     var verbes = ['LOVES', 'HATES', 'MISSING', 'THE'];
     var nouns = ['CATS', 'DOGS', 'SLEEPING', 'OVILIA', 'YUMAO', 'YOU', 'JOKES', 'JS', 'GAMES'];
     return getRandom(names) + '_' + getRandom(verbes) + '_' + getRandom(nouns);
+}
+
+function getRandimInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function getRandomTweet() {
