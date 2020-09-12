@@ -1,4 +1,4 @@
-(function (THREE, window, document) {
+(function (THREE, window, document, PI) {
 
 try {
 
@@ -23,9 +23,9 @@ var RADIUS_LAND = 10.1;
 var RADIUS_OCEAN = 9.8;
 var RADIUS_UFO_POS = 11;
 var SPECIMENS_AMOUNT = 10;
-var ANGULAR_VEL = Math.PI / 600;
+var ANGULAR_VEL = PI / 600;
 var ANGULAR_ACC = ANGULAR_VEL / 30;
-var UFO_PHI = Math.PI * 0.42;
+var UFO_PHI = PI * 0.42;
 var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
@@ -581,7 +581,7 @@ function initLight() {
     lights.key.castShadow = true;
     scene.add(lights.key);
 
-    lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, Math.PI / 12, 0.5, 2);
+    lights.spot = new THREE.SpotLight('#fc6', 0.25, 100, PI / 12, 0.5, 2);
     lights.spot.position.set(0, 5, 20);
     lights.spot.lookAt(0, 0, 0);
     lights.spot.shadow.mapSize.width = 1024;
@@ -693,7 +693,7 @@ function createEarth() {
             x: geo.vertices[i].x,
             y: geo.vertices[i].y,
             z: geo.vertices[i].z,
-            delta: Math.random() * Math.PI * 2
+            delta: Math.random() * PI * 2
         });
     }
 
@@ -943,14 +943,14 @@ function createSky() {
 
         var radius = R * (Math.random() * 2 + 1);
         var sph = new THREE.Spherical(radius);
-        sph.phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
-        sph.theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        sph.phi = THREE.MathUtils.randFloatSpread(PI * 2);
+        sph.theta = THREE.MathUtils.randFloatSpread(PI * 2);
         mesh.position.setFromSphericalCoords(radius, sph.phi, sph.theta);
 
         mesh.rotation.set(
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2
+            Math.random() * PI * 2,
+            Math.random() * PI * 2,
+            Math.random() * PI * 2
         );
 
         mesh.scale.setScalar(THREE.MathUtils.randFloatSpread(r));
@@ -970,20 +970,20 @@ function createClouds() {
     });
     for (var cluster = 0; cluster < 50; ++cluster) {
         var cnt = 5;
-        var phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
-        var theta = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+        var phi = THREE.MathUtils.randFloatSpread(PI * 2);
+        var theta = THREE.MathUtils.randFloatSpread(PI * 2);
         var scale = Math.random() * 0.5 + 0.8;
         for (var i = 0; i < cnt; ++i) {
             var r = [0.4, 0.6, 0.8, 0.4][i] + THREE.MathUtils.randFloatSpread(0.2);
             var geo = new THREE.IcosahedronGeometry(r * scale, 0);
             var mesh = new THREE.Mesh(geo, mat);
-            phi += 0.04 + THREE.MathUtils.randFloatSpread(Math.PI * 0.03);
+            phi += 0.04 + THREE.MathUtils.randFloatSpread(PI * 0.03);
             var dR = THREE.MathUtils.randFloatSpread(0.1);
             mesh.position.setFromSphericalCoords(R + dR, phi, theta);
             mesh.rotation.set(
-                THREE.MathUtils.randFloatSpread(Math.PI * 2),
-                THREE.MathUtils.randFloatSpread(Math.PI * 2),
-                THREE.MathUtils.randFloatSpread(Math.PI * 2)
+                THREE.MathUtils.randFloatSpread(PI * 2),
+                THREE.MathUtils.randFloatSpread(PI * 2),
+                THREE.MathUtils.randFloatSpread(PI * 2)
             )
             mesh.layers.set(LAYER_EARTH);
             clouds.add(mesh);
@@ -1567,7 +1567,7 @@ function getVectorFromSphCoord(radius, phi, theta) {
 }
 
 function randRad() {
-    return THREE.MathUtils.randFloatSpread(2 * Math.PI);
+    return THREE.MathUtils.randFloatSpread(2 * PI);
 }
 
 function worldToScreen(obj) {
@@ -1637,4 +1637,4 @@ function getRandomTweet() {
     // DEBUG END
 }
 
-})(THREE, window, document);
+})(THREE, window, document, Math.PI);
