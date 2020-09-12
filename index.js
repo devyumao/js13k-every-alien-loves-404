@@ -163,11 +163,11 @@ var specimens = {
     init$() {
         pivot.add(this.group$);
         this.group$.layers.set(LAYER_EARTH);
-        
+
         this.add$(UFO_PHI + 0.42, UFO_THETA + 0.42);
-    
+
         var origin = worldToLocal(RADIUS_EARTH, UFO_PHI, UFO_THETA);
-    
+
         for (var i = 0; i < SPECIMENS_AMOUNT - 1; ++i) {
             do {
                 var phi = randRad();
@@ -285,7 +285,7 @@ var medium = {
     },
 
     remove$(item) {
-        this.popupsEl$.removeChild(item._p)
+        this.popupsEl$.removeChild(item._p);
         item._p = null;
         item._n = null;
         this.group$.remove(item);
@@ -625,10 +625,6 @@ function main() {
 
     var loading = document.getElementById('x');
     loading.innerHTML = 'PRESS ENTER';
-
-    setTimeout(function () {
-        updateGameState(GAME_STATES.gameOverEasingIn$);
-    }, 4000);
 }
 
 function initScene() {
@@ -857,7 +853,7 @@ function initUfoRayMixer() {
             )
         ])
     );
-    ufoRayAction.loop = THREE.LoopPingPong;
+    ufoRayAction.loop = THREE.LoopOnce;
 }
 
 function initUfoLaserMixer() {
@@ -1095,7 +1091,7 @@ function initControl() {
         }
         else if (gameState === GAME_STATES.gameOverEasingIn$ || gameState === GAME_STATES.gameOver$) {
             if (isKeyOk) {
-                updateGameState(GAME_STATES.gameOverEasingOut$);
+                updateGameState(GAME_STATES.inGame$);
             }
         }
     });
@@ -1294,10 +1290,6 @@ function updateGameState(state, isWin) {
         ufoIndicator.position.y = -0.08;
         ufoIndicator.scale.set(1.3, 1.3, 1);
         ufoIndicatorAction.stop();
-
-        setTimeout(function () {
-            updateGameState(GAME_STATES.inGame$);
-        }, BEFORE_GAME_ANIMATION_DURATION * 1e3);
     }
 
     if (gameState === GAME_STATES.welcome$) {
@@ -1309,6 +1301,10 @@ function updateGameState(state, isWin) {
         ui.parentNode.removeChild(ui);
 
         restart();
+
+        setTimeout(function () {
+            updateGameState(GAME_STATES.inGame$);
+        }, BEFORE_GAME_ANIMATION_DURATION * 1e3);
     }
     else if (gameState === GAME_STATES.gameOverEasingIn$) {
         pivot._v = pivotGameOverPosition.clone().sub(pivot.position)
@@ -1340,15 +1336,13 @@ function updateGameState(state, isWin) {
             updateGameState(GAME_STATES.gameOver$);
         }, GAME_OVER_ANIMATION_DURATION * 1e3);
     }
-    else if (gameState === GAME_STATES.gameOverEasingOut$) {
+    else if (gameState === GAME_STATES.inGame$) {
         b.style.display = STR_NONE;
         u.style.display = STR_BLOCK;
-
         audio.playIndicator$(0);
 
         restart();
-    }
-    else if (gameState === GAME_STATES.inGame$) {
+
         ufo.position.set(...ufoInGamePosition.toArray());
         camera.position.set(...cameraInGamePosition.toArray());
         pivot.position.set(...pivotInGamePosition.toArray());
@@ -1436,7 +1430,7 @@ function updateUfoState() {
             }
             break;
         case UFO_STATES.rayFailed$:
-            if (!failMsg.running$) {
+            if (!failMsg.running$ && !keys[32]) {
                 ufoState = UFO_STATES.reducingRay$;
             }
             break;
@@ -1711,6 +1705,9 @@ function reset() {
     specimens.reset$();
     medium.reset$();
     news.reset$();
+
+    // remove emoji dna
+    document.getElementById('h').innerText = '';
 }
 
 // DEBUG
