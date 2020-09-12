@@ -293,10 +293,12 @@ var medium = {
     },
 
     remove$(item) {
-        this.popupsEl$.removeChild(item._p)
-        item._p = null;
-        item._n = null;
-        this.group$.remove(item);
+        if (item) {
+            this.popupsEl$.removeChild(item._p)
+            item._p = null;
+            item._n = null;
+            this.group$.remove(item);
+        }
     },
 
     getTotalViewed$() {
@@ -348,27 +350,37 @@ var medium = {
 
     runProgress$() {
         var { progress$, targetItem$ } = this;
-        progress$.running$ = true;
-        targetItem$._p.classList.add('pl');
-        progress$._clock$ = Date.now();
+        if (targetItem$) {
+            progress$.running$ = true;
+            targetItem$._p.classList.add('pl');
+            progress$._clock$ = Date.now();
+        }
     },
 
     stopProgress$() {
         var { progress$, targetItem$ } = this;
-        targetItem$._p.classList.remove('pl');
-        progress$.running$ = false;
-        progress$.result$ = false;
+        if (targetItem$) {
+            targetItem$._p.classList.remove('pl');
+            progress$.running$ = false;
+            progress$.result$ = false;
+        }
     },
 
     finishProgress$() {
         var { progress$, targetItem$, news$ } = this;
+        if (!targetItem$) return;
         progress$.running$ = false;
         progress$.result$ = true;
         targetItem$._p.classList.add('pf');
         targetItem$.visible = false;
         targetItem$._d = true;
         news$.set404$(targetItem$._n);
-        setTimeout(() => this.remove$(targetItem$), 3e3);
+        setTimeout(() => {
+            if (targetItem$) {
+                targetItem$._p.classList.add('po');
+                setTimeout(() => this.remove$(targetItem$), 500);
+            }      
+        }, 3e3);
         if (tutorialState === TUTORIAL.AFTER_MEDIUM_APPEAR$
             || tutorialState === TUTORIAL.AFTER_MEDIA$
         ) {

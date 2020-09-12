@@ -45,6 +45,9 @@
             line-height: 32px;
             box-sizing: border-box;
         }
+        .p.po {
+            opacity: 0 !important;
+        }
         .p::before {
             position: absolute;
             top: 0;
@@ -83,6 +86,9 @@
         .p.pl {
             overflow: hidden;
         }
+        .p.pf {
+            animation: p4 0.3s ease forwards;
+        }
         .p.pl::after {
             width: 100%;
             transition: width 1s linear;
@@ -90,6 +96,17 @@
         }
         .p.pf::after {
             content: '404 NOT FOUND';
+        }
+        @keyframes p4 {
+            0% {
+                transform: translate(-50%) scale(1);
+            }
+            50% {
+                transform: translate(-50%) scale(1.2);
+            }
+            100% {
+                transform: translate(-50%) scale(1);
+            }
         }
         #a {
             text-align: center;
