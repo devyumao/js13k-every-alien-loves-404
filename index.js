@@ -532,6 +532,11 @@ var failMsg = {
     update$() {
         if (ufoState === UFO_STATES.rayFailed$) {
             var el = this.el$;
+            var pos = worldToScreen(ufo);
+            var style = this.el$.style;
+            style.left = Math.round(pos.x) + 'px';
+            style.top = Math.round(pos.y - window.innerHeight / 12) + 'px';
+
             if (!el.className || el.className === 'o') {
                 this.running$ = true;
                 el.className = 'i';

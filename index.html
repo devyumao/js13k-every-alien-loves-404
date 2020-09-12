@@ -167,23 +167,23 @@
             animation: wiggle 0.8s linear infinite alternate;
         }
         #f {
-            position: absolute;
             top: 25%;
-            left: calc(50% - 1vh);
-            font-size: 6vh;
+            left: 50%;
+            position: absolute;
+            font-size: 7vh;
             color: #0e1a25;
             text-shadow: 0vh 0vh 1vh rgba(255, 255, 255, 0.5);
-            transition: all 0.15s ease 0.4s;
             opacity: 0;
-            transform: translateY(50%);
+            font-weight: bold;
+            transform: translate(-50%, 50%);
         }
         #f.i {
-            transition: all 0.15s ease 0.4s;
+            transition: opacity 0.15s ease 0.4s, transform 0.15s ease 0.4s;
             opacity: 1;
-            transform: translateY(0);
+            transform: translate(-50%, 0);
         }
         #f.o {
-            transition: all 0.15s;
+            transition: opacity 0.15s, transform 0.15s;
             opacity: 0;
         }
 
