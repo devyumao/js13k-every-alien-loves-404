@@ -141,6 +141,8 @@ var colors = {
     land$: '#9be889'
 };
 
+var inGameUi = document.getElementById('g');
+
 // $$$_INJECT_AUDIO_$$$
 
 // DEBUG
@@ -680,6 +682,14 @@ function initRenderer() {
     onWindowResize();
 }
 
+function showInGameUI() {
+    inGameUi.style.display = STR_BLOCK;
+}
+
+function hideInGameUI() {
+    inGameUi.style.display = STR_NONE;
+}
+
 function createEarth() {
     var geo = new THREE.IcosahedronGeometry(RADIUS_OCEAN, 4);
     earthSurface = [];
@@ -721,10 +731,15 @@ function createUfo() {
     );
 
     ufoIndicator = new THREE.Mesh(
-        new THREE.ConeGeometry(0.32, 0.16, 32),
-        new THREE.MeshToonMaterial({ color: '#b7eb8f', transparent: true, opacity: 0 })
+        new THREE.TorusGeometry(0.25, 0.05, 32, 64),
+        new THREE.MeshBasicMaterial({
+            color: colors.oceanLevels$[0],
+            transparent: true,
+            opacity: 0
+        })
     );
-    ufoIndicator.position.y = 0.047;
+    ufoIndicator.rotateX(Math.PI / 2);
+    ufoIndicator.position.y = -0.06;
 
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.45, 0.8, 32),
@@ -1021,7 +1036,6 @@ function initControl() {
         // DEBUG END
 
         keys[e.keyCode] = true;
-        audio.playBg$();
 
         var keyEnter = 13;
         var keySpace = 32;
@@ -1031,6 +1045,7 @@ function initControl() {
         if (gameState === GAME_STATES.welcome$) {
             if (isKeyOk) {
                 updateGameState(GAME_STATES.welcomeEasingOut$);
+                audio.playBg$();
             }
         }
         else if (gameState === GAME_STATES.inGame$) {
@@ -1086,7 +1101,16 @@ function animate() {
 
     updateEarth(delta * 1e3);
     updateClouds(delta * 1e3);
+
     ufoIndicatorMixer.update(delta);
+
+    var deltaIndicator = (ufoIndicator.scale.x - 1) / 0.4;
+    deltaIndicator += delta / 2;
+    if (deltaIndicator > 1) {
+        deltaIndicator = 0;
+    }
+    var inndicatorScale = 1 + 0.4 * deltaIndicator;
+    ufoIndicator.scale.set(inndicatorScale, inndicatorScale, 1);
 
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
@@ -1262,7 +1286,7 @@ function updateGameState(state, isWin) {
             b.className = 'f';
         }
 
-        hideTweets();
+        hideInGameUI();
 
         setTimeout(function () {
             updateGameState(GAME_STATES.gameOver$);
@@ -1271,6 +1295,8 @@ function updateGameState(state, isWin) {
     else if (gameState === GAME_STATES.gameOverEasingOut$) {
         b.style.display = STR_NONE;
         u.style.display = STR_BLOCK;
+
+        audio.playIndicator$(0);
 
         restart();
     }
@@ -1281,6 +1307,7 @@ function updateGameState(state, isWin) {
 
         u.style.display = STR_BLOCK;
         updateCanvas();
+        showInGameUI();
     }
 }
 
@@ -1404,11 +1431,15 @@ function updateUfoActions() {
 function updateUfoIndicator() {
     const isRunning = ufoIndicatorAction.isRunning();
     if (specimens.near$) {
-        !isRunning && ufoIndicatorAction.play();
         // TODO: quadratic
         ufoIndicatorAction.timeScale = 0.55 / (0.05 + specimens.minAngle$);
+        !isRunning && ufoIndicatorAction.play();
+
+        var ratio = (ufoIndicatorAction.timeScale - 1) / 10;
+        audio.playIndicator$(ratio);
     } else {
         isRunning && ufoIndicatorAction.stop();
+        audio.playIndicator$(0);
     }
 }
 
@@ -1521,7 +1552,7 @@ function updateCanvas() {
 
     function drawText(text, x, y, color, fontSize) {
         uiCtx.fillStyle = color;
-        uiCtx.font = fontSize * Dpr + 'px Minecraft';
+        uiCtx.font = fontSize * Dpr + 'px monospace';
         uiCtx.fillText(text, x * Dpr, y * Dpr);
     }
 
