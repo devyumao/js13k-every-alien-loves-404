@@ -186,9 +186,25 @@
             transition: all 0.15s;
             opacity: 0;
         }
+
         #g { /* in game ui */
             display: none;
         }
+
+        #r {
+            border-radius: 6px;
+            padding: 15px;
+            width: 50vh;
+            background: rgba(20,25,30,.7);
+            top: 50%;
+            margin: 50vh auto;
+            color: #fff;
+            z-index: 1000;
+            position: relative;
+            text-align: center;
+            display: none;
+        }
+
         .t {
             background: rgba(20,25,30,.7);
             border-radius: 6px;
@@ -292,6 +308,7 @@
         <div id="g">
             <div id="h" class="t"></div>
             <div id="t" class="t"></div>
+            <div id="r"><!-- tutorial --></div>
         </div>
 
         <div id="p"></div>
@@ -308,6 +325,7 @@
     <script src="./vr-controls.js"></script>
     <script src="./audio.js"></script>
     <script src="./emoji.js"></script>
+    <script src="./tutorial.js"></script>
     <script src="./index.js"></script>
 </body>
 </html>

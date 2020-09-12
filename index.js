@@ -3,7 +3,9 @@
 try {
 
 // $$$_INJECT_VR_$$$
+// $$$_INJECT_AUDIO_$$$
 // $$$_INJECT_EMOJI_$$$
+// $$$_INJECT_TUTORIAL_$$$
 
 var getElementById = function (id) {
     return document.getElementById(id);
@@ -143,7 +145,6 @@ var colors = {
 
 var inGameUi = document.getElementById('g');
 
-// $$$_INJECT_AUDIO_$$$
 
 // DEBUG
 var stats;
@@ -700,8 +701,7 @@ function createEarth() {
         color: colors.oceanLevels$[0],
         flatShading: true,
         vertexColors: true,
-        shininess: 0.8,
-        // wireframe: true
+        shininess: 0.8
     });
 
     earth = new THREE.Mesh(geo, mat);
@@ -713,14 +713,12 @@ function createEarth() {
 function createUfo() {
     var ufoCore = new THREE.Mesh(
         new THREE.SphereGeometry(0.25, 32, 32),
-        // new THREE.MeshPhongMaterial({ color: '#eee', shininess: 0.2 })
         new THREE.MeshToonMaterial({ color: '#bfbfbf' })
     );
     ufoCore.position.y = -0.05;
 
     var ufoPlate = new THREE.Mesh(
         new THREE.ConeGeometry(0.5, 0.25, 32),
-        // new THREE.MeshPhongMaterial({ color: '#acacac', shininess: 0.2 })
         new THREE.MeshToonMaterial({ color: '#8c8c8c' })
     );
 
@@ -1033,7 +1031,6 @@ function initControl() {
 
         var keyEnter = 13;
         var keySpace = 32;
-        // TODO: add VR keys?
         var isKeyOk = [keyEnter, keySpace].indexOf(e.keyCode) > -1;
 
         if (gameState === GAME_STATES.welcome$) {
@@ -1052,6 +1049,12 @@ function initControl() {
             if (isKeyOk) {
                 updateGameState(GAME_STATES.gameOverEasingOut$);
             }
+        }
+
+        if ([87, 38, 83, 40, 65, 37, 68, 39].indexOf(e.keyCode) > -1 && tutorialState === TUTORIAL.ASDW$) {
+            setTimeout(function () {
+                updateTutorial(TUTORIAL.AFTER_ASDW$);
+            }, 3000);
         }
     });
     document.addEventListener('keyup', function (e) {
@@ -1244,6 +1247,7 @@ function updateGameState(state, isWin) {
         camera._v = cameraInGamePosition.clone().sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
+        ufoIndicator.position.y = -0.01;
         ufoIndicatorAction.stop();
 
         setTimeout(function () {
@@ -1262,8 +1266,6 @@ function updateGameState(state, isWin) {
         restart();
     }
     else if (gameState === GAME_STATES.gameOverEasingIn$) {
-        ufoIndicator.scale.set(1, 1, 1);
-
         pivot._v = pivotGameOverPosition.clone().sub(pivot.position)
             .divideScalar(GAME_OVER_ANIMATION_DURATION);
 
@@ -1302,6 +1304,8 @@ function updateGameState(state, isWin) {
         u.style.display = STR_BLOCK;
         updateCanvas();
         showInGameUI();
+
+        updateTutorial(TUTORIAL.ASDW$);
     }
 }
 
@@ -1438,7 +1442,11 @@ function updateUfoIndicator() {
 }
 
 function updateUfoIndicatorEffect(delta) {
-    if (gameState !== GAME_STATES.welcome$) {
+    if (
+        gameState !== GAME_STATES.welcome$
+        && gameState !== GAME_STATES.gameOverEasingIn$
+        && gameState !== GAME_STATES.gameOver$
+    ) {
         return;
     }
 
@@ -1552,7 +1560,7 @@ function updateCanvas() {
 
     var barWidth = d * 10 + circleMargin * 9;
     var rightStart = W - margin[0] - barWidth;
-    drawText('PUBLIC PRESSURE', rightStart + 50, margin[1], textColor, 16);
+    drawText('PUBLIC PRESSURE', rightStart + 70, margin[1], textColor, 16);
     drawCircle(rightStart, circleTop, barWidth, 8, 2, emptyColor);
 
     var peoplePercent = Math.min(medium.getTotalViewed$(), MAX_MEDIUM_PRESSURE) / MAX_MEDIUM_PRESSURE;
