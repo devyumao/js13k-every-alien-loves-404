@@ -6,7 +6,6 @@ try {
 // $$$_INJECT_AUDIO_$$$
 // $$$_INJECT_EMOJI_$$$
 // $$$_INJECT_TUTORIAL_$$$
-tutorialCompleted = true;
 
 var getElementById = function (id) {
     return document.getElementById(id);
@@ -71,7 +70,6 @@ var GAME_STATES = {
     gameOver$: 4,
     gameOverEasingOut$: 5 // from gameOver to inGame
 };
-var isGameWin = 0; // should be used only when game over
 var BEFORE_GAME_ANIMATION_DURATION = 3;
 // DEBUG
 BEFORE_GAME_ANIMATION_DURATION = 0;
@@ -153,6 +151,10 @@ var stats;
 
 var specimens = {
     group$: new THREE.Group(),
+
+    geometry$: new THREE.SphereGeometry(0.1, 16, 16),
+    material$: new THREE.MeshToonMaterial({ color: '#ffadd2' }),
+
     minAngle$: Infinity,
     near$: false,
     available$: false,
@@ -161,13 +163,32 @@ var specimens = {
     init$() {
         pivot.add(this.group$);
         this.group$.layers.set(LAYER_EARTH);
-        for (var i = 0; i < SPECIMENS_AMOUNT; ++i) {
-            this.add$(randRad(), randRad());
+        
+        this.add$(UFO_PHI + 0.42, UFO_THETA + 0.42);
+    
+        var origin = worldToLocal(RADIUS_EARTH, UFO_PHI, UFO_THETA);
+    
+        for (var i = 0; i < SPECIMENS_AMOUNT - 1; ++i) {
+            do {
+                var phi = randRad();
+                var theta = randRad();
+                var pos = getVectorFromSphCoord(RADIUS_EARTH, phi, theta);
+            } while (pos.angleTo(origin) <= SPECIMEN_NEAR_THRES);
+            this.add$(phi, theta);
         }
     },
 
+    reset$() {
+        this.group$.remove(...this.group$.children);
+        for (var i = 0; i < SPECIMENS_AMOUNT; ++i) {
+            this.add$(randRad(), randRad());
+        }
+        this.targetItem$ = null;
+    },
+
     add$(phi, theta) {
-        var point = createPoint(phi, theta, '#ffadd2');
+        var point = new THREE.Mesh(this.geometry$, this.material$);
+        point.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
         point.visible = false;
         this.group$.add(point);
     },
@@ -216,6 +237,10 @@ var specimens = {
 
 var medium = {
     group$: new THREE.Group(),
+
+    geometry$: new THREE.SphereGeometry(0.15, 16, 16),
+    material$: new THREE.MeshToonMaterial({ color: '#ff4d4f', transparent: true, opacity: 0.7 }),
+
     minAngle$: Infinity,
     targetItem$: null,
     popupsEl$: getElementById('p'),
@@ -232,15 +257,20 @@ var medium = {
         this.group$.layers.set(LAYER_EARTH);
         pivot.add(this.group$);
         // DEBUG
-        this.add$(UFO_PHI, UFO_THETA);
+        // this.add$(UFO_PHI, UFO_THETA);
         // DEBUG END
     },
 
+    reset$() {
+        var children = this.group$.children;
+        for (var i = children.length - 1; i >= 0; i--) {
+            this.remove$(children[i]);
+        }
+        this.targetItem$ = null;
+    },
+
     add$(phi, theta) {
-        var media = new THREE.Mesh(
-            new THREE.SphereGeometry(0.15, 16, 16),
-            new THREE.MeshToonMaterial({ color: '#ff4d4f', transparent: true, opacity: 0.7 })
-        );
+        var media = new THREE.Mesh(this.geometry$, this.material$);
         media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
 
         media._viewed = Math.ceil(Math.random() * 10);
@@ -248,7 +278,7 @@ var medium = {
 
         media._p = createElement(STR_DIV, this.popupsEl$, 'p');
 
-        medium.group$.add(media);
+        this.group$.add(media);
 
         var _n = this.news$.add$(media._viewed);
         media._n = _n;
@@ -309,13 +339,13 @@ var medium = {
     runProgress$() {
         var { progress$, targetItem$ } = this;
         progress$.running$ = true;
-        targetItem$._p.classList.add('l');
+        targetItem$._p.classList.add('pl');
         progress$._clock$ = Date.now();
     },
 
     stopProgress$() {
         var { progress$, targetItem$ } = this;
-        targetItem$._p.classList.remove('l');
+        targetItem$._p.classList.remove('pl');
         progress$.running$ = false;
         progress$.result$ = false;
     },
@@ -324,7 +354,7 @@ var medium = {
         var { progress$, targetItem$, news$ } = this;
         progress$.running$ = false;
         progress$.result$ = true;
-        targetItem$._p.classList.add('f');
+        targetItem$._p.classList.add('pf');
         targetItem$.visible = false;
         targetItem$._d = true;
         news$.set404$(targetItem$._n);
@@ -382,7 +412,7 @@ var medium = {
         var popup = item._p;
         if (item._viewed >= 1e6) {
             const text = Math.round(item._viewed / 1e5) / 10 + 'M';
-            popup.setAttribute('class', 'p r');
+            popup.setAttribute('class', 'p R');
             popup.innerText = text + ' VIEWED';
         }
         else if (item._viewed >= 1e3) {
@@ -424,6 +454,11 @@ var news = {
         this.el$.style.display = STR_NONE;
     },
 
+    reset$() {
+        this.hide$();
+        this.el$.innerHTML = '';
+    },
+
     add$() {
         var tweet = createElement(STR_DIV, this.el$, 'T');
 
@@ -435,7 +470,7 @@ var news = {
         createElement(STR_DIV, left, 'v');
         // viewed.innerText = '12K VIEWED';
 
-        var right = createElement(STR_DIV, tweet, 'R');
+        var right = createElement(STR_DIV, tweet, 'r');
 
         var name = createElement(STR_DIV, right, 'n');
         name.innerText = '@' + getRandomName();
@@ -839,15 +874,6 @@ function initUfoLaserMixer() {
     ufoLaserAction.loop = THREE.LoopPingPong;
 }
 
-function createPoint(phi, theta, color) {
-    // var point = new THREE.Object3D();
-    var geometry = new THREE.SphereGeometry(0.1, 16, 16);
-    var material = new THREE.MeshBasicMaterial({ color });
-    var point = new THREE.Mesh(geometry, material);
-    point.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
-    return point;
-}
-
 function addPointToTrack() {
     var point = new THREE.Object3D();
     point.position.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
@@ -905,7 +931,7 @@ function createLand() {
     }
 
     landSurface = [];
-    for (var i = 0; i < geo.faces.length; ++i) {
+    for (i = 0; i < geo.faces.length; ++i) {
         var f = geo.faces[i];
         if (vLevel[f.a] && vLevel[f.b] && vLevel[f.c]) {
             // Land
@@ -920,8 +946,8 @@ function createLand() {
     }
 
     for (var level = 1; level > -4; --level) {
-        for (var i = 0; i < geo.faces.length; ++i) {
-            var f = geo.faces[i];
+        for (i = 0; i < geo.faces.length; ++i) {
+            f = geo.faces[i];
             var la = isVLeveled[f.a] > level;
             var lb = isVLeveled[f.b] > level;
             var lc = isVLeveled[f.c] > level;
@@ -1308,6 +1334,8 @@ function updateGameState(state, isWin) {
 
         audio.playIndicator$(0);
 
+        reset();
+
         setTimeout(function () {
             updateGameState(GAME_STATES.gameOver$);
         }, GAME_OVER_ANIMATION_DURATION * 1e3);
@@ -1669,6 +1697,20 @@ function addEmojiDna() {
     var h = document.getElementById('h');
     var img = createElement(STR_IMG, h, 'a d');
     img.setAttribute('src', getEmojiDna());
+}
+
+function reset() {
+    trackTime = null;
+    pathLength = 0;
+    lastPosition = null;
+    trackMediaMap = {};
+
+    // cameraState = CAMERA_STATES.distant$;
+    // ufoState = UFO_STATES.idle$;
+
+    specimens.reset$();
+    medium.reset$();
+    news.reset$();
 }
 
 // DEBUG
