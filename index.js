@@ -1247,7 +1247,8 @@ function updateGameState(state, isWin) {
         camera._v = cameraInGamePosition.clone().sub(camera.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
-        ufoIndicator.position.y = -0.01;
+        ufoIndicator.position.y = -0.08;
+        ufoIndicator.scale.set(1.3, 1.3, 1);
         ufoIndicatorAction.stop();
 
         setTimeout(function () {
