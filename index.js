@@ -6,6 +6,7 @@ try {
 // $$$_INJECT_AUDIO_$$$
 // $$$_INJECT_EMOJI_$$$
 // $$$_INJECT_TUTORIAL_$$$
+tutorialCompleted = true;
 
 var getElementById = function (id) {
     return document.getElementById(id);
@@ -230,7 +231,7 @@ var medium = {
         this.group$.layers.set(LAYER_EARTH);
         pivot.add(this.group$);
         // DEBUG
-        // this.add$(UFO_PHI, UFO_THETA);
+        this.add$(UFO_PHI, UFO_THETA);
         // DEBUG END
     },
 
@@ -429,7 +430,7 @@ var news = {
         createElement(STR_DIV, left, 'v');
         // viewed.innerText = '12K VIEWED';
 
-        var right = createElement(STR_DIV, tweet, 'r');
+        var right = createElement(STR_DIV, tweet, 'R');
 
         var name = createElement(STR_DIV, right, 'n');
         name.innerText = '@' + getRandomName();
@@ -1352,8 +1353,10 @@ function updateUfoState() {
             } else if (keys[32] && cameraState === CAMERA_STATES.close$) {
                 if (medium.targetItem$) {
                     ufoState = UFO_STATES.increasingLaser$;
+                    audio.playEffect$(EFFECT_404);
                 } else {
                     ufoState = UFO_STATES.increasingRay$;
+                    audio.playEffect$(EFFECT_RAY);
                 }
             }
             break;
