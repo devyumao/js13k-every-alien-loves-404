@@ -33,16 +33,16 @@
         .p {
             position: absolute;
             padding: 0 10px;
-            /* border: 3px solid salmon; */
             background: #574AB7;
             color: white;
             border-radius: 4px;
             transition: opacity 0.5s;
             font-size: 12px;
             transform: translate(-50%);
-            min-width: 114px;
+            min-width: 108px;
             text-align: center;
             line-height: 32px;
+            box-sizing: border-box;
         }
         .p::before {
             position: absolute;
@@ -55,19 +55,22 @@
             content: '';
         }
         .p::after {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             position: absolute;
             top: 0;
             left: 0;
             height: 100%;
             width: 0;
             content: '';
-            overflow: hidden;
+            white-space: nowrap;
             transition: width 0.2s linear;
             font-size: 12px;
             color: #74a868;
-            line-height: 32px;
             background: #9be889;
             box-sizing: border-box;
+            border-radius: 4px;
         }
         .p.y {
             background: #A641E7;
