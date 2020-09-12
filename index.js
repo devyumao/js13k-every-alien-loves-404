@@ -722,10 +722,15 @@ function createUfo() {
     );
 
     ufoIndicator = new THREE.Mesh(
-        new THREE.ConeGeometry(0.32, 0.16, 32),
-        new THREE.MeshToonMaterial({ color: colors.oceanLevels$[0], transparent: true, opacity: 0 })
+        new THREE.TorusGeometry(0.25, 0.05, 32, 64),
+        new THREE.MeshBasicMaterial({
+            color: colors.oceanLevels$[0],
+            transparent: true,
+            opacity: 0
+        })
     );
-    ufoIndicator.position.y = 0.047;
+    ufoIndicator.rotateX(Math.PI / 2);
+    ufoIndicator.position.y = -0.06;
 
     ufoRay = new THREE.Mesh(
         new THREE.ConeGeometry(0.45, 0.8, 32),
@@ -1087,7 +1092,16 @@ function animate() {
 
     updateEarth(delta * 1e3);
     updateClouds(delta * 1e3);
+
     ufoIndicatorMixer.update(delta);
+
+    var deltaIndicator = (ufoIndicator.scale.x - 1) / 0.4;
+    deltaIndicator += delta / 2;
+    if (deltaIndicator > 1) {
+        deltaIndicator = 0;
+    }
+    var inndicatorScale = 1 + 0.4 * deltaIndicator;
+    ufoIndicator.scale.set(inndicatorScale, inndicatorScale, 1);
 
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
@@ -1272,6 +1286,8 @@ function updateGameState(state, isWin) {
     else if (gameState === GAME_STATES.gameOverEasingOut$) {
         b.style.display = STR_NONE;
         u.style.display = STR_BLOCK;
+
+        audio.playIndicator$(0);
 
         restart();
     }
@@ -1527,7 +1543,7 @@ function updateCanvas() {
 
     function drawText(text, x, y, color, fontSize) {
         uiCtx.fillStyle = color;
-        uiCtx.font = fontSize * Dpr + 'px Minecraft';
+        uiCtx.font = fontSize * Dpr + 'px monospace';
         uiCtx.fillText(text, x * Dpr, y * Dpr);
     }
 

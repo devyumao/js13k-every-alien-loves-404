@@ -121,7 +121,7 @@ function buildMisc() {
 function runZip() {
     zip.file('index.html', fs.readFileSync('./dist/index.html'));
     zip.file('index.js', fs.readFileSync('./dist/index.js'));
-    zip.file('f.ttf', fs.readFileSync('./dist/f.ttf'));
+    // zip.file('f.ttf', fs.readFileSync('./dist/f.ttf'));
 
     const data = zip.generate({
         base64: false,

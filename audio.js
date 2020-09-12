@@ -50,7 +50,6 @@ var audio = {
     ctx$: null,
 
     isReady$: false,
-    isMuted$: false,
 
     playBg$: function () {
         if (!audio._isBgPlaying$) {
@@ -66,7 +65,7 @@ var audio = {
     },
 
     playIndicator$: function (ratio) {
-        if (audio._gainIndicator$ && ratio !== audio._lastIndicatorRatio) {
+        if (audio.isReady$ && audio._gainIndicator$ && ratio !== audio._lastIndicatorRatio) {
             audio._gainIndicator$.gain.value = ratio ? ratio * 2 + 0.5 : 0;
             audio._audioIndicator$.playbackRate.value = 1 + ratio * 4;
             audio._gainBg$.gain.value = 1 - ratio * 0.5;
@@ -89,7 +88,6 @@ function init() {
     var cb = function () {
         ++doneCnt;
         if (doneCnt === 2) {
-            console.log('play');
             audio.isReady$ = true;
             if (audio._isBgPlaying$) {
                 audio._audioBg$.start();
