@@ -32,6 +32,7 @@ var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
 var MAX_TRACK_POINTS = 10;
 var MAX_MEDIUM = 8;
+var MAX_MEDIUM_PRESSURE = 1e7;
 var SPECIMEN_NEAR_THRES = 0.5;
 var SPECIMEN_AVAILABLE_THRES = 0.045;
 var CAMERA_DISTANT_Z = 20;
@@ -252,6 +253,10 @@ var medium = {
         this.group$.remove(item);
     },
 
+    getTotalViewed$() {
+        return this.group$.children.reduce((prev, curr) => prev + curr._viewed, 0);
+    },
+
     update$() {
         if (track.children.length <= MAX_MEDIUM) {
             var key = Math.ceil(pathLength / 15);
@@ -288,6 +293,8 @@ var medium = {
                 this.stopProgress$();
             }
         }
+
+        console.log(this.getTotalViewed$());
     },
 
     runProgress$() {
@@ -312,6 +319,7 @@ var medium = {
         targetItem$.visible = false;
         targetItem$._d = true;
         setTimeout(() => this.remove$(targetItem$), 3e3);
+        updateCanvas();
     },
 
     updatePopups$() {
@@ -320,7 +328,9 @@ var medium = {
             this.lastUpdated$ = Date.now();
         }
 
-        this.group$.children.forEach(function (media) {
+        var updated = false;
+
+        this.group$.children.forEach(media => {
             var pos = worldToScreen(media);
             // uiCtx.fillRect(pos.x / uiDprRatio, pos.y / uiDprRatio, 2, 2);
             var popup = media._p;
@@ -329,22 +339,7 @@ var medium = {
             style.top = Math.round(pos.y + 10) + 'px';
             style.opacity = pos.z < 5 ? 0.2 : 1;
 
-            if (!media._d && updateNumber && Math.random() > 0.8 || !popup.innerText) {
-                // TODO: check media is not removed from mediaGroup
-
-                if (media._viewed >= 1e6) {
-                    const text = Math.round(media._viewed / 1e5) / 10 + 'M';
-                    popup.setAttribute('class', 'p r');
-                    popup.innerText = text + ' VIEWED';
-                }
-                else if (media._viewed >= 1e3) {
-                    const text = Math.round(media._viewed / 100) / 10 + 'K';
-                    popup.setAttribute('class', 'p y');
-                    popup.innerText = text + ' VIEWED';
-                }
-                else {
-                    popup.innerText = media._viewed + ' VIEWED';
-                }
+            if (!media._d && ((updateNumber && Math.random() > 0.8) || !popup.innerText)) {
                 if (Math.random() > 0.95) {
                     // TODO: not so randomly
                     media._viewed += Math.ceil(Math.random() * 2e6);
@@ -352,8 +347,29 @@ var medium = {
                 else {
                     media._viewed += Math.ceil(Math.random() * media._maxV);
                 }
+                this.updateText$(media);
+                updated = true;
             }
         });
+
+        updated && updateCanvas();
+    },
+
+    updateText$(item) {
+        var popup = item._p;
+        if (item._viewed >= 1e6) {
+            const text = Math.round(item._viewed / 1e5) / 10 + 'M';
+            popup.setAttribute('class', 'p r');
+            popup.innerText = text + ' VIEWED';
+        }
+        else if (item._viewed >= 1e3) {
+            const text = Math.round(item._viewed / 100) / 10 + 'K';
+            popup.setAttribute('class', 'p y');
+            popup.innerText = text + ' VIEWED';
+        }
+        else {
+            popup.innerText = item._viewed + ' VIEWED';
+        }
     }
 };
 
@@ -1506,7 +1522,7 @@ function updateCanvas() {
     drawText('PUBLIC PRESSURE', rightStart + 50, margin[1], textColor, 16);
     drawCircle(rightStart, circleTop, barWidth, 8, 2, emptyColor);
 
-    var peoplePercent = 0.7;
+    var peoplePercent = Math.min(medium.getTotalViewed$(), MAX_MEDIUM_PRESSURE) / MAX_MEDIUM_PRESSURE;
     drawCircle(rightStart, circleTop, barWidth * peoplePercent, 8, 2, colors.primary$, 1);
 
     function drawText(text, x, y, color, fontSize) {
