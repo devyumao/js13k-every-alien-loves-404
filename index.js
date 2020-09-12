@@ -207,6 +207,7 @@ var specimens = {
                 this.targetItem$ = null;
                 updateCanvas();
                 addEmojiDna();
+                !this.count$() && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$, 1), 2e3);
             }
         }
     }
@@ -370,7 +371,11 @@ var medium = {
             }
         });
 
-        updated && updateCanvas();
+        if (updated) {
+            updateCanvas();
+            medium.getTotalViewed$() >= MAX_MEDIUM_PRESSURE
+                && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$), 2000);
+        }
     },
 
     updateText$(item) {
@@ -1285,6 +1290,8 @@ function updateGameState(state, isWin) {
 
         hideInGameUI();
 
+        audio.playIndicator$(0);
+
         setTimeout(function () {
             updateGameState(GAME_STATES.gameOver$);
         }, GAME_OVER_ANIMATION_DURATION * 1e3);
@@ -1650,7 +1657,7 @@ function addEmojiDna() {
 function initDebug() {
     stats = new Stats();
     stats.showPanel(0);
-    // document.body.appendChild(stats.dom);
+    document.body.appendChild(stats.dom);
 }
 // DEBUG END
 
