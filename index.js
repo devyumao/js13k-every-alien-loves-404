@@ -231,7 +231,7 @@ var medium = {
         this.group$.layers.set(LAYER_EARTH);
         pivot.add(this.group$);
         // DEBUG
-        this.add$(UFO_PHI, UFO_THETA);
+        // this.add$(UFO_PHI, UFO_THETA);
         // DEBUG END
     },
 
