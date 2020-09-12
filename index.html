@@ -174,19 +174,25 @@
             transition: all 0.15s;
             opacity: 0;
         }
-        #t {
+        #g { /* in game ui */
+            display: none;
+        }
+        .t {
             background: rgba(20,25,30,.7);
             border-radius: 6px;
             width: 300px;
             position: absolute;
-            right: 15px;
             top: 70px;
             transition: 0.5s ease-in;
-            padding: 15px;
             max-height: 500px;
             overflow: scroll;
             z-index: 100;
-            display: none;
+        }
+        #h {
+            left: 15px;
+        }
+        #t {
+            right: 15px;
         }
         .T {
             margin: 5px 0;
@@ -207,13 +213,13 @@
             animation: hl 3s forwards;
         }
         .TT .a {
-            border-color: #dd4491;
+            border-color: #9be889;
         }
         .a {
             width: 40px;
             height: 40px;
             image-rendering: pixelated;
-            border: 2px solid #9be889;
+            border: 2px solid #DD4391;
             border-radius: 4px;
             margin-left: 6px;
         }
@@ -226,14 +232,17 @@
         .l {
             width: 60px;
             float: left;
+            margin-left: 10px;
         }
         .r {
-            margin-left: 70px;
+            margin: 0 10px 0 80px;
         }
         .n {
             color: #fff;
             font-size: 14px;
             font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .c {
             font-size: 12px;
@@ -268,7 +277,10 @@
             <h6>BY <a href="//github.com/devyumao">@DEVYUMAO</a> AND <a href="//github.com/Ovilia">@OVILIA</a></h6>
         </div>
 
-        <div id="t"></div>
+        <div id="g">
+            <div id="h" class="t"></div>
+            <div id="t" class="t"></div>
+        </div>
 
         <div id="p"></div>
         <div id="w">

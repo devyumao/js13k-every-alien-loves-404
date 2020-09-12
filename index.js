@@ -145,8 +145,6 @@ var tweetList = [];
 // $$$_INJECT_AUDIO_$$$
 
 // DEBUG
-var gui;
-var guiConfigs;
 var stats;
 // DEBUG END
 
@@ -598,16 +596,16 @@ setTimeout(function () {
     appendTweet();
     appendTweet();
     appendTweet();
-}, 10000);
+}, 1000);
 // DEBUG END
 
-function showTweets() {
-    var dom = document.getElementById('t');
+function showInGameUI() {
+    var dom = document.getElementById('g');
     dom.style.display = STR_BLOCK;
 }
 
-function hideTweets() {
-    var dom = document.getElementById('t');
+function hideInGameUI() {
+    var dom = document.getElementById('g');
     dom.style.display = STR_NONE;
 }
 
@@ -692,7 +690,7 @@ function createUfo() {
 
     ufoIndicator = new THREE.Mesh(
         new THREE.ConeGeometry(0.32, 0.16, 32),
-        new THREE.MeshToonMaterial({ color: '#b7eb8f', transparent: true, opacity: 0 })
+        new THREE.MeshToonMaterial({ color: colors.oceanLevels$[0], transparent: true, opacity: 0 })
     );
     ufoIndicator.position.y = 0.047;
 
@@ -991,7 +989,6 @@ function initControl() {
         // DEBUG END
 
         keys[e.keyCode] = true;
-        audio.playBg$();
 
         var keyEnter = 13;
         var keySpace = 32;
@@ -1001,6 +998,7 @@ function initControl() {
         if (gameState === GAME_STATES.welcome$) {
             if (isKeyOk) {
                 updateGameState(GAME_STATES.welcomeEasingOut$);
+                audio.playBg$();
             }
         }
         else if (gameState === GAME_STATES.inGame$) {
@@ -1230,7 +1228,7 @@ function updateGameState(state, isWin) {
             b.className = 'f';
         }
 
-        hideTweets();
+        hideInGameUI();
 
         setTimeout(function () {
             updateGameState(GAME_STATES.gameOver$);
@@ -1249,7 +1247,7 @@ function updateGameState(state, isWin) {
 
         u.style.display = STR_BLOCK;
         updateCanvas();
-        showTweets();
+        showInGameUI();
     }
 }
 
@@ -1373,11 +1371,15 @@ function updateUfoActions() {
 function updateUfoIndicator() {
     const isRunning = ufoIndicatorAction.isRunning();
     if (specimens.near$) {
-        !isRunning && ufoIndicatorAction.play();
         // TODO: quadratic
         ufoIndicatorAction.timeScale = 0.55 / (0.05 + specimens.minAngle$);
+        !isRunning && ufoIndicatorAction.play();
+
+        var ratio = (ufoIndicatorAction.timeScale - 1) / 10;
+        audio.playIndicator$(ratio);
     } else {
         isRunning && ufoIndicatorAction.stop();
+        audio.playIndicator$(0);
     }
 }
 
