@@ -511,7 +511,7 @@ var wiggler = {
     result$: null,
 
     initData$(angle) {
-        var targetLen = 0.6 + 0.06 / (0.02 + angle);
+        var targetLen = 0.8 + 0.06 / (0.02 + angle);
         this.targetStart$ = (this.length$ - targetLen) / 2;
         this.targetEnd$ = this.length$ - this.targetStart$;
         var style = this.targetEl$.style;
