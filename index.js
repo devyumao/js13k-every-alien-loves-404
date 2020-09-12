@@ -491,6 +491,8 @@ var wiggler = {
     },
 
     update$() {
+        this.updatePos$();
+
         switch (ufoState) {
             case UFO_STATES.raying$:
                 this.el$.style.opacity = 1;
@@ -503,17 +505,19 @@ var wiggler = {
                 this.el$.style.opacity = 0;
                 this.pointerEl$.style.animationPlayState = 'running';
                 break;
-            // case UFO_STATES.rayFailed$:
-            //     // FIXME:
-            //     if (!failMsg.running) {
-            //         this.el.style.opacity = 0;
-            //         this.pointerEl.style.animationPlayStates = 'running';
-            //     }
-            //     break;
         }
 
         if (ufoState !== UFO_STATES.raying$) {
             this.result$ = null;
+        }
+    },
+
+    updatePos$() {
+        if ([UFO_STATES.raying$, UFO_STATES.rayFailed$, UFO_STATES.takingSpec$].includes(ufoState)) {
+            var pos = worldToScreen(ufo);
+            var style = this.el$.style;
+            style.left = Math.round(pos.x) + 'px';
+            style.top = Math.round(pos.y + window.innerHeight / 22) + 'px';
         }
     }
 }
