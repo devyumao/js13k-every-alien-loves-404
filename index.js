@@ -568,6 +568,9 @@ function main() {
     updateGameState(GAME_STATES.welcome$);
 
     animate();
+
+    var loading = document.getElementById('x');
+    loading.innerHTML = 'PRESS ENTER';
 }
 
 function initScene() {
@@ -579,21 +582,12 @@ function initScene() {
     // camera.position.z = CAMERA_DISTANT_Z;
     camera.layers.enable(LAYER_EARTH);
 
-    var bg = new THREE.PlaneBufferGeometry(5e3, 2e3);
-    var bgMat = new THREE.ShaderMaterial({
-        uniforms: {
-            t: {
-                value: new THREE.Color(colors.bgTop$)
-            },
-            b: {
-                value: new THREE.Color(colors.bgBottom$)
-            }
-        },
-        vertexShader: 'varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-        fragmentShader: 'uniform vec3 t;uniform vec3 b;varying vec2 v;void main(){gl_FragColor = vec4(mix(t,b,v.y),1.0);}'
+    var bg = new THREE.BoxGeometry(5e3, 5e3, 5e3);
+    var bgMat = new THREE.MeshBasicMaterial({
+        color: colors.bgTop$,
+        side: THREE.BackSide
     });
     var bgMesh = new THREE.Mesh(bg, bgMat);
-    bgMesh.position.z = -400;
     scene.add(bgMesh);
 
 
@@ -671,7 +665,7 @@ function initRenderer() {
     Dpr = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
     renderer.setPixelRatio(Dpr);
     renderer.autoClear = false;
-    renderer.setClearColor(0x000000, 0.0);
+    renderer.setClearColor(colors.bgTop$, 0.0);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
@@ -1104,20 +1098,16 @@ function animate() {
 
     ufoIndicatorMixer.update(delta);
 
-    var deltaIndicator = (ufoIndicator.scale.x - 1) / 0.4;
-    deltaIndicator += delta / 2;
-    if (deltaIndicator > 1) {
-        deltaIndicator = 0;
-    }
-    var inndicatorScale = 1 + 0.4 * deltaIndicator;
-    ufoIndicator.scale.set(inndicatorScale, inndicatorScale, 1);
+    updateUfoIndicatorEffect(delta);
 
     if (window.rttOn) {
         renderer.setRenderTarget(rtTexture);
         renderer.clear();
     }
 
-    vrControls.update();
+    if (gameState === GAME_STATES.inGame$) {
+        vrControls.update();
+    }
 
     camera.layers.set(LAYER_EARTH);
     renderer.render(scene, camera);
@@ -1246,6 +1236,8 @@ function updateGameState(state, isWin) {
     var u = getElementById('u');
 
     function restart() {
+        vrControls.resetPose();
+
         ufo._v = ufoInGamePosition.clone().sub(ufo.position)
             .divideScalar(BEFORE_GAME_ANIMATION_DURATION);
 
@@ -1270,6 +1262,8 @@ function updateGameState(state, isWin) {
         restart();
     }
     else if (gameState === GAME_STATES.gameOverEasingIn$) {
+        ufoIndicator.scale.set(1, 1, 1);
+
         pivot._v = pivotGameOverPosition.clone().sub(pivot.position)
             .divideScalar(GAME_OVER_ANIMATION_DURATION);
 
@@ -1441,6 +1435,20 @@ function updateUfoIndicator() {
         isRunning && ufoIndicatorAction.stop();
         audio.playIndicator$(0);
     }
+}
+
+function updateUfoIndicatorEffect(delta) {
+    if (gameState !== GAME_STATES.welcome$) {
+        return;
+    }
+
+    var deltaIndicator = (ufoIndicator.scale.x - 1) / 0.4;
+    deltaIndicator += delta / 2;
+    if (deltaIndicator > 1) {
+        deltaIndicator = 0;
+    }
+    var inndicatorScale = 1 + 0.4 * deltaIndicator;
+    ufoIndicator.scale.set(inndicatorScale, inndicatorScale, 1);
 }
 
 function updateUfoRay(delta) {

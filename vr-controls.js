@@ -28,16 +28,19 @@ THREE.VRControls = function (object) {
             }
 
             if (pose && pose.orientation !== null) {
+                for (var i = 0; i < 3; ++i) {
+                    pose.orientation[i] = Math.min(0.2, Math.max(-0.2, pose.orientation[i]));
+                }
                 object.quaternion.fromArray(pose.orientation);
             }
         }
     };
 
-    // this.resetPose = function () {
-    // 	if ( vrDisplay ) {
-    // 		vrDisplay.resetPose();
-    // 	}
-    // };
+    this.resetPose = function () {
+    	if ( vrDisplay ) {
+    		vrDisplay.resetPose();
+    	}
+    };
 
     // this.dispose = function () {
     //     vrDisplay = null;
