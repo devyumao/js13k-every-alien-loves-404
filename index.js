@@ -141,7 +141,7 @@ var colors = {
     land$: '#9be889'
 };
 
-var tweetList = [];
+var inGameUi = document.getElementById('g');
 
 // $$$_INJECT_AUDIO_$$$
 
@@ -223,31 +223,39 @@ var medium = {
         running$: false,
         result$: null,
     },
+    news$: null,
 
-    init$() {
+    init$({ news$ }) {
+        this.news$ = news$;
         this.group$.layers.set(LAYER_EARTH);
         pivot.add(this.group$);
-        // this.add$(UFO_PHI, UFO_THETA); // FIXME: temp
+        // DEBUG
+        this.add$(UFO_PHI, UFO_THETA);
+        // DEBUG END
     },
 
     add$(phi, theta) {
         var media = new THREE.Mesh(
             new THREE.SphereGeometry(0.15, 16, 16),
-            new THREE.MeshToonMaterial({ color: '#ff4d4f', transparent: true, opacity: 0.5 })
+            new THREE.MeshToonMaterial({ color: '#ff4d4f', transparent: true, opacity: 0.7 })
         );
         media.position.setFromSphericalCoords(RADIUS_EARTH, phi, theta);
 
         media._viewed = Math.ceil(Math.random() * 10);
         media._maxV = Math.ceil(Math.random() * 1e3);
 
-        media._p = createElement(STR_DIV, this.popupsEl$, 'p');;
+        media._p = createElement(STR_DIV, this.popupsEl$, 'p');
 
         medium.group$.add(media);
+
+        var _n = this.news$.add$(media._viewed);
+        media._n = _n;
     },
 
     remove$(item) {
         this.popupsEl$.removeChild(item._p)
         item._p = null;
+        item._n = null;
         this.group$.remove(item);
     },
 
@@ -335,7 +343,10 @@ var medium = {
             style.top = Math.round(pos.y + 10) + 'px';
             style.opacity = pos.z < 5 ? 0.2 : 1;
 
-            if (!media._d && ((updateNumber && Math.random() > 0.8) || !popup.innerText)) {
+            if (!media._d
+                && (media !== this.targetItem$ || ufoState !== UFO_STATES.lasing$)
+                && ((updateNumber && Math.random() > 0.8) || !popup.innerText)
+            ) {
                 if (Math.random() > 0.95) {
                     // TODO: not so randomly
                     media._viewed += Math.ceil(Math.random() * 2e6);
@@ -344,6 +355,7 @@ var medium = {
                     media._viewed += Math.ceil(Math.random() * media._maxV);
                 }
                 this.updateText$(media);
+                this.news$.updateViewed$(media._n, popup.innerText);
                 updated = true;
             }
         });
@@ -384,6 +396,61 @@ function getNearest(children) {
         }
         return a;
     }, null);
+}
+
+var news = {
+    el$: document.getElementById('t'),
+
+    show$() {
+        this.el$.style.display = STR_BLOCK;
+    },
+
+    hide$() {
+        this.el$.style.display = STR_NONE;
+    },
+
+    add$() {
+        var tweet = createElement(STR_DIV, this.el$, 'T');
+
+        var left = createElement(STR_DIV, tweet, 'l');
+
+        var avatar = createElement(STR_IMG, left, 'a');
+        avatar.setAttribute('src', getAvatar());
+
+        createElement(STR_DIV, left, 'v');
+        // viewed.innerText = '12K VIEWED';
+
+        var right = createElement(STR_DIV, tweet, 'r');
+
+        var name = createElement(STR_DIV, right, 'n');
+        name.innerText = '@' + getRandomName();
+
+        var content = createElement(STR_DIV, right, 'c');
+        content.innerText = getRandomTweet();
+
+        tweet.parentNode.scrollTop = tweet.offsetTop;
+
+        this.show$();
+
+        // tweetList.push(tweet);
+        return tweet;
+    },
+
+    updateViewed$(dom, text) {
+        dom.getElementsByClassName('v')[0].innerText = text;
+    },
+
+    set404(dom) {
+        dom.className = 'T TT';
+
+        var viewed = dom.children[0].children[1];
+        viewed.innerText = 'NA';
+
+        var content = dom.children[1].children[1];
+        content.innerText = '(404) NOT FOUND';
+
+        dom.parentNode.scrollTop = dom.offsetTop;
+    }
 }
 
 var wiggler = {
@@ -437,7 +504,7 @@ var wiggler = {
         }
 
         if (ufoState !== UFO_STATES.raying$) {
-            wiggler.result$ = null;
+            this.result$ = null;
         }
     }
 }
@@ -486,7 +553,7 @@ function main() {
     scene.add(pivot);
 
     specimens.init$();
-    medium.init$();
+    medium.init$({ news$: news });
 
     initRenderer();
 
@@ -609,70 +676,12 @@ function initRenderer() {
     onWindowResize();
 }
 
-// DEBUG
-setTimeout(function () {
-    appendTweet();
-    appendTweet();
-    appendTweet();
-    appendTweet();
-    appendTweet();
-
-    var last = appendTweet();
-    setTweet404(last);
-
-    appendTweet();
-    appendTweet();
-    appendTweet();
-}, 1000);
-// DEBUG END
-
 function showInGameUI() {
-    var dom = document.getElementById('g');
-    dom.style.display = STR_BLOCK;
+    inGameUi.style.display = STR_BLOCK;
 }
 
 function hideInGameUI() {
-    var dom = document.getElementById('g');
-    dom.style.display = STR_NONE;
-}
-
-function appendTweet() {
-    var dom = document.getElementById('t');
-
-    var tweet = createElement(STR_DIV, dom, 'T');
-
-    var left = createElement(STR_DIV, tweet, 'l');
-
-    var avatar = createElement(STR_IMG, left, 'a');
-    avatar.setAttribute('src', getAvatar());
-
-    var viewed = createElement(STR_DIV, left, 'v');
-    viewed.innerText = '12K VIEWED';
-
-    var right = createElement(STR_DIV, tweet, 'r');
-
-    var name = createElement(STR_DIV, right, 'n');
-    name.innerText = '@' + getRandomName();
-
-    var content = createElement(STR_DIV, right, 'c');
-    content.innerText = getRandomTweet();
-
-    tweet.parentNode.scrollTop = tweet.offsetTop;
-
-    tweetList.push(tweet);
-    return tweet;
-}
-
-function setTweet404(dom) {
-    dom.className = 'T TT';
-
-    var viewed = dom.children[0].children[1];
-    viewed.innerText = 'NA';
-
-    var content = dom.children[1].children[1];
-    content.innerText = '(404) NOT FOUND';
-
-    dom.parentNode.scrollTop = dom.offsetTop;
+    inGameUi.style.display = STR_NONE;
 }
 
 function createEarth() {
