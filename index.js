@@ -590,6 +590,10 @@ function main() {
 
     var loading = document.getElementById('x');
     loading.innerHTML = 'PRESS ENTER';
+
+    setTimeout(function () {
+        updateGameState(GAME_STATES.gameOverEasingIn$);
+    }, 4000);
 }
 
 function initScene() {
@@ -1286,6 +1290,9 @@ function updateGameState(state, isWin) {
 
         ufo._v = ufoGameOverPosition.clone().sub(ufo.position)
             .divideScalar(GAME_OVER_ANIMATION_DURATION / 4);
+
+        ufoIndicator.scale.set(1, 1, 1);
+        ufoIndicatorAction.play();
 
         b.style.display = STR_BLOCK;
         u.style.display = STR_NONE;
