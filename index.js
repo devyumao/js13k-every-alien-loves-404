@@ -569,7 +569,7 @@ var wiggler = {
             var pos = worldToScreen(ufo);
             var style = this.el$.style;
             style.left = Math.round(pos.x) + 'px';
-            style.top = Math.round(pos.y + window.innerHeight / 22) + 'px';
+            style.top = Math.round(pos.y) + 'px';
         }
     }
 }
