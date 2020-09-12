@@ -19,7 +19,7 @@ function initEmoji() {
         var emojiSize = 64;
         var outSize = 16;
         var padding = 0;
-        var dy = 0;
+        var dy = 2;
         var emojiBox = emojiSize + padding * 2;
 
         var canvas = createCanvas(emojiBox * emojiCount, emojiBox);
@@ -60,9 +60,9 @@ function initEmoji() {
 }
 
 function getEmojiAvatar() {
-    if (!lastEmojiAvatarId) {
+    if (lastEmojiAvatarId == null) {
         // first
-        lastEmojiAvatarId = Math.floor(Math.random() * emojiAvatars.length);
+        lastEmojiAvatarId = Math.floor(Math.random() * emojiAvatars.length) - 1;
     }
 
     ++lastEmojiAvatarId;
@@ -73,9 +73,9 @@ function getEmojiAvatar() {
 }
 
 function getEmojiDna() {
-    if (!lastEmojiDnaId) {
+    if (lastEmojiDnaId == null) {
         // first
-        lastEmojiDnaId = Math.floor(Math.random() * emojiDnas.length);
+        lastEmojiDnaId = Math.floor(Math.random() * emojiDnas.length) - 1;
     }
 
     ++lastEmojiDnaId;

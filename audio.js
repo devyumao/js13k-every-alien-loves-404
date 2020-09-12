@@ -43,7 +43,7 @@ var EFFECT_TWEET = [,,47,.06,.03,.01,1,.72,74,92,432,.03,.03,,-0.8];
 
 var SKIP_NOTE = -1;
 var TRACK_ID_MELODY = 0;
-var BEATS_PER_MINUTE = 20;
+var BEATS_PER_MINUTE = 15;
 var BEAT_DURATION = 60 / BEATS_PER_MINUTE;
 var SAMPLE_RATE = zzfxR;
 
@@ -93,9 +93,8 @@ function init() {
         if (doneCnt === 2) {
             audio.isReady$ = true;
             if (audio._isBgPlaying$) {
-                // audio._audioBg$.start();
-                // audio._audioIndicator$.start();
-                    audio.playEffect$(EFFECT_404);
+                audio._audioBg$.start();
+                audio._audioIndicator$.start();
             }
         }
     };
