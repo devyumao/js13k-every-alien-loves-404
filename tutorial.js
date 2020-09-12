@@ -31,7 +31,7 @@ function setTutorial(state) {
             return;
 
         case TUTORIAL.ASDW$:
-            text = 'USE A/S/D/W TO MOVE AROUND';
+            text = 'USE A/S/D/W TO MOVE AROUND.';
             break;
 
         case TUTORIAL.AFTER_ASDW$:
@@ -42,7 +42,7 @@ function setTutorial(state) {
             break;
 
         case TUTORIAL.AFTER_DNA_NEAR$:
-            text = 'FIND THE PLACE WHERE THE LIGHT BLINKS FASTEST AND THE AUDIO HAS THE HIGHEST FREQUENCY';
+            text = 'FIND THE PLACE WHERE THE LIGHT BLINKS FASTEST AND THE AUDIO HAS THE HIGHEST FREQUENCY.';
             break;
 
         case TUTORIAL.AFTER_DNA_AVAILABLE$:
