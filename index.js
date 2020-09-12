@@ -204,9 +204,11 @@ var specimens = {
                 sph.radius += 0.02;
                 this.targetItem$.position.setFromSpherical(sph);
             } else {
+                // Catch a DNA
                 this.remove$(this.targetItem$);
                 this.targetItem$ = null;
                 updateCanvas();
+                addEmojiDna();
             }
         }
     }
@@ -416,7 +418,7 @@ var news = {
         var left = createElement(STR_DIV, tweet, 'l');
 
         var avatar = createElement(STR_IMG, left, 'a');
-        avatar.setAttribute('src', getAvatar());
+        avatar.setAttribute('src', getEmojiAvatar());
 
         createElement(STR_DIV, left, 'v');
         // viewed.innerText = '12K VIEWED';
@@ -1589,6 +1591,12 @@ function updateCanvas() {
             uiCtx.clearRect(x2 * Dpr, y2 * Dpr, d, d);
         }
     }
+}
+
+function addEmojiDna() {
+    var h = document.getElementById('h');
+    var img = createElement(STR_IMG, h, 'a d');
+    img.setAttribute('src', getEmojiDna());
 }
 
 // DEBUG
