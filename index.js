@@ -319,12 +319,13 @@ var medium = {
     },
 
     finishProgress$() {
-        var { progress$, targetItem$ } = this;
+        var { progress$, targetItem$, news$ } = this;
         progress$.running$ = false;
         progress$.result$ = true;
         targetItem$._p.classList.add('f');
         targetItem$.visible = false;
         targetItem$._d = true;
+        news$.set404$(targetItem$._n);
         setTimeout(() => this.remove$(targetItem$), 3e3);
         updateCanvas();
     },
@@ -443,15 +444,10 @@ var news = {
         dom.getElementsByClassName('v')[0].innerText = text;
     },
 
-    set404(dom) {
+    set404$(dom) {
         dom.className = 'T TT';
-
-        var viewed = dom.children[0].children[1];
-        viewed.innerText = 'NA';
-
-        var content = dom.children[1].children[1];
-        content.innerText = '(404) NOT FOUND';
-
+        this.updateViewed$(dom, 'NA');
+        dom.children[1].children[1].innerText = '(404) NOT FOUND';
         dom.parentNode.scrollTop = dom.offsetTop;
     }
 }
