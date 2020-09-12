@@ -138,7 +138,6 @@ var inGameKeyPressed = false;
 var colors = {
     primary$: '#DD4391',
     bgTop$: '#0e1a25',
-    bgBottom$: '#202731',
     oceanLevels$: ['#31d9d9', '#32c5d9', '#44a9c8', '#2694b9', '#067499'],
     land$: '#9be889'
 };
