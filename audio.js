@@ -248,9 +248,7 @@ function init() {
                             bgOscillatorsTrack[oId].frequency.setValueAtTime(freq, time);
 
                             var obj = bgGainsTrack[oId].gain;
-                            var rampValue = trackId === 0
-                                ? 'linearRampToValueAtTime'
-                                : 'exponentialRampToValueAtTime';
+                            var rampValue = 'linearRampToValueAtTime';
                             obj.setValueAtTime(0, time);
                             obj[rampValue](ratio, decayStart);
                             obj[rampValue](sustainValue, sustainStart);
@@ -274,33 +272,28 @@ function init() {
             });
         });
 
-        offCtx.startRendering()
-            .then(function (renderedBuffer) {
-                var audioSrc = audio.ctx$.createBufferSource();
-                audioSrc.buffer = renderedBuffer;
-                audioSrc.loop = true;
+        offCtx.startRendering();
+        offCtx.oncomplete = function (e) {
+            var audioSrc = audio.ctx$.createBufferSource();
+            audioSrc.buffer = e.renderedBuffer;
+            audioSrc.loop = true;
 
-                var gain = audio.ctx$.createGain();
-                gain.gain.value = 0;
-                audioSrc.connect(gain);
-                gain.connect(audio._totalGain$);
+            var gain = audio.ctx$.createGain();
+            gain.gain.value = 0;
+            audioSrc.connect(gain);
+            gain.connect(audio._totalGain$);
 
-                if (isBg) {
-                    gain.gain.value = 1;
-                    audio._gainBg$ = gain;
-                    audio._audioBg$ = audioSrc;
-                }
-                else {
-                    audio._gainIndicator$ = gain;
-                    audio._audioIndicator$ = audioSrc;
-                }
-                cb(audioSrc);
-            })
-            .catch(function (e) {
-                // DEBUG
-                console.error(e);
-                // DEBUG END
-            });
+            if (isBg) {
+                gain.gain.value = 1;
+                audio._gainBg$ = gain;
+                audio._audioBg$ = audioSrc;
+            }
+            else {
+                audio._gainIndicator$ = gain;
+                audio._audioIndicator$ = audioSrc;
+            }
+            cb(audioSrc);
+        };
     }
 }
 

@@ -65,7 +65,7 @@ function setTutorial(state) {
             setTimeout(() => {
                 setTutorial(TUTORIAL.DONE$);
                 tutorialCompleted = true;
-            }, 10e3);
+            }, 15e3);
             break;
     }
 
