@@ -46,7 +46,7 @@ function setTutorial(state) {
             break;
 
         case TUTORIAL.AFTER_DNA_AVAILABLE$:
-            text = 'HOLD SPACE AND RELEASE ON CORRECT MOMENT TO CATCH IT!';
+            text = 'HOLD SPACE AND RELEASE AT THE CORRECT MOMENT TO CATCH IT!';
             break;
 
         case TUTORIAL.AFTER_MEDIUM_APPEAR$:
@@ -61,7 +61,7 @@ function setTutorial(state) {
             break;
 
         case TUTORIAL.AFTER_MEDIA_CAUGHT$:
-            text = 'GOOD JOB! NOW, COMPLETE YOUR GOAL OF COLLECTING 10 DNA SAMPLES. REMEMBER YOU ONLY HAVE TO MAKE THE TWEETS 404 WHEN NECESSARY. DON\'T WASTE TOO MUCH YOUR TIME ON IT.';
+            text = 'GOOD JOB! NOW, COMPLETE YOUR GOAL OF COLLECTING 10 DNA SAMPLES. REMEMBER YOU ONLY HAVE TO MAKE THE TWEETS 404 WHEN NECESSARY. DON\'T WASTE TOO MUCH TIME ON IT.';
             setTimeout(() => {
                 setTutorial(TUTORIAL.DONE$);
                 tutorialCompleted = true;
