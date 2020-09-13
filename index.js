@@ -1694,9 +1694,13 @@ function updateTutorial() {
             break;
 
         case TUTORIAL.AFTER_ASDW$:
-            tutorialStepComplated[TUTORIAL.AFTER_ASDW$]
-                && specimens.near$
-                && setTutorial(TUTORIAL.AFTER_DNA_NEAR$);
+            if (SPECIMENS_AMOUNT > specimens.count$()) {
+                doAfterDnaCaught();
+            } else {
+                tutorialStepComplated[TUTORIAL.AFTER_ASDW$]
+                    && specimens.near$
+                    && setTutorial(TUTORIAL.AFTER_DNA_NEAR$);
+            }
             break;
 
         case TUTORIAL.AFTER_DNA_NEAR$:
@@ -1705,18 +1709,7 @@ function updateTutorial() {
 
         case TUTORIAL.AFTER_DNA_AVAILABLE$:
             if (SPECIMENS_AMOUNT > specimens.count$()) {
-                setTutorial(TUTORIAL.NONE$);
-                setTimeout(() => {
-                    tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$] = 1;
-
-                    var sph = new THREE.Spherical();
-                    sph.setFromVector3(worldToLocal(RADIUS_EARTH, UFO_PHI - 0.5, UFO_THETA - 0.5));
-                    medium.add$(sph.phi, sph.theta);
-
-                    setTimeout(() => {
-                        setTutorial(TUTORIAL.AFTER_MEDIUM_APPEAR$);
-                    }, 1e3);
-                }, 3e3);
+                doAfterDnaCaught();
             } else if (!specimens.available$) {
                 setTutorial(TUTORIAL.AFTER_DNA_NEAR$);
             }
@@ -1726,6 +1719,21 @@ function updateTutorial() {
             tutorialStepComplated[TUTORIAL.AFTER_MEDIUM_APPEAR$]
                 && setTutorial(TUTORIAL.AFTER_MEDIA$);
             break;
+    }
+
+    function doAfterDnaCaught() {
+        setTutorial(TUTORIAL.NONE$);
+        setTimeout(() => {
+            tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$] = 1;
+
+            var sph = new THREE.Spherical();
+            sph.setFromVector3(worldToLocal(RADIUS_EARTH, UFO_PHI - 0.5, UFO_THETA - 0.5));
+            medium.add$(sph.phi, sph.theta);
+
+            setTimeout(() => {
+                setTutorial(TUTORIAL.AFTER_MEDIUM_APPEAR$);
+            }, 1e3);
+        }, 3e3);
     }
 }
 

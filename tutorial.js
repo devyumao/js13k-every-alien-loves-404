@@ -38,7 +38,7 @@ function setTutorial(state) {
             text = 'YOUR MISSION IS TO FIND 10 DNA SAMPLES ON THE EARTH. IF ONE IS NEAR YOU, THE BLUE LIGHT ON YOUR FLYING SAUCER WILL BLINK FASTER AND THE RADAR AUDIO MAY ALSO HELP.';
             setTimeout(() => {
                 tutorialStepComplated[TUTORIAL.AFTER_ASDW$] = 1;
-            }, 6e3);
+            }, 10e3);
             break;
 
         case TUTORIAL.AFTER_DNA_NEAR$:
@@ -53,7 +53,7 @@ function setTutorial(state) {
             text = 'OOPS... YOU WERE WITNESSED BY HUMANS. IF TOO MANY PEOPLE KNOW ABOUT YOU, THE SECRET AGREEMENT WITH SEVERAL GOVERNMENTS THAT ALLOWS YOU TO COLLECT DNA WILL BE TERMINATED. SO, WATCH OUT FOR THE POPULARITY OF EACH TWEET AND MAKE IT 404 WHEN NECESSARY.';
             setTimeout(() => {
                 tutorialStepComplated[TUTORIAL.AFTER_MEDIUM_APPEAR$] = 1;
-            }, 6e3);
+            }, 15e3);
             break;
 
         case TUTORIAL.AFTER_MEDIA$:
@@ -65,7 +65,7 @@ function setTutorial(state) {
             setTimeout(() => {
                 setTutorial(TUTORIAL.DONE$);
                 tutorialCompleted = true;
-            }, 6e3);
+            }, 10e3);
             break;
     }
 
