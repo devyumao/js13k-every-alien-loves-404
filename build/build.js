@@ -38,6 +38,7 @@ function buildHtml() {
     htmlSrc = htmlSrc.replace(
         './node_modules/three/build/three.js',
         'https://js13kgames.com/webxr-src/2020/three.js'
+        // 'https://webserver-1256209664.cos.ap-shanghai.myqcloud.com/alien/three.min.js'
     );
 
     htmlSrc = htmlSrc.replace(
