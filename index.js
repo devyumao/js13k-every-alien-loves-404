@@ -422,7 +422,7 @@ var medium = {
         if (updated) {
             updateCanvas();
             medium.getTotalViewed$() >= MAX_MEDIUM_PRESSURE
-                && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$), 2000);
+                && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$), 500);
         }
     },
 
@@ -1139,7 +1139,7 @@ function initControl() {
             }
         }
         else if (gameState === GAME_STATES.gameOverEasingIn$ || gameState === GAME_STATES.gameOver$) {
-            if (isKeyOk) {
+            if (e.keyCode === keyEnter) {
                 reload();
             }
         }
