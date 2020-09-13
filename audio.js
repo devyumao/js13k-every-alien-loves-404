@@ -162,10 +162,10 @@ function init() {
     function initIndicator() {
         var tracks = [{
             patterns: [{
-                pattern: [[0]],
+                pattern: [[-3]],
                 span: 1 / 8
             }],
-            volumn: 0.5,
+            volumn: 0.2,
             envelope: {
                 attack: 0.2,
                 decay: 0.05,
@@ -173,7 +173,7 @@ function init() {
                 release: 0.5,
                 value: 0.9
             },
-            wave: 'triangle'
+            wave: 'square'
         }];
 
         doInit(tracks, false, cb);
