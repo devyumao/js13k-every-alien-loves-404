@@ -311,7 +311,7 @@ var medium = {
     },
 
     update$() {
-        if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
+        if (!canMediaGenerate()) return;
 
         if (this.count$() < MAX_MEDIUM) {
             var key = Math.floor(pathLength / 30);
@@ -896,7 +896,7 @@ function initUfoRayMixer() {
             )
         ])
     );
-    ufoRayAction.loop = THREE.LoopOnce;
+    ufoRayAction.loop = THREE.LoopPingPong;
 }
 
 function initUfoLaserMixer() {
@@ -1140,7 +1140,7 @@ function initControl() {
         }
         else if (gameState === GAME_STATES.gameOverEasingIn$ || gameState === GAME_STATES.gameOver$) {
             if (isKeyOk) {
-                updateGameState(GAME_STATES.inGame$);
+                reload();
             }
         }
     });
@@ -1628,7 +1628,7 @@ function pauseAction(action) {
 }
 
 function updatePathLength() {
-    if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
+    if (!canMediaGenerate()) return;
     var position = worldToLocal(RADIUS_EARTH, UFO_PHI, UFO_THETA);
     if (lastPosition) {
         pathLength += position.distanceTo(lastPosition);
@@ -1637,7 +1637,7 @@ function updatePathLength() {
 }
 
 function updateTrack() {
-    if (!tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$]) return;
+    if (!canMediaGenerate()) return;
     var now = Date.now();
     if (now - trackTime >= 3e3) {
         trackTime = now;
@@ -1752,6 +1752,10 @@ function updateTutorial() {
     }
 }
 
+function canMediaGenerate() {
+    return tutorialCompleted || tutorialStepComplated[TUTORIAL.AFTER_DNA_AVAILABLE$];
+}
+
 function updateControl() {
     switch (ufoState) {
         case UFO_STATES.reducingLaser$:
@@ -1785,6 +1789,10 @@ function reset() {
 
     // remove emoji dna
     dnaCollection.reset$();
+}
+
+function reload() {
+    window.location.href = tutorialCompleted ? '?t=0' : '';
 }
 
 // DEBUG

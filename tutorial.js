@@ -11,7 +11,7 @@ var TUTORIAL = {
 };
 
 var tutorialState;
-var tutorialCompleted = false;
+var tutorialCompleted = window.location.search == '?t=0';
 var tutorialStepComplated = [];
 
 function setTutorial(state) {
