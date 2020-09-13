@@ -229,7 +229,7 @@ var specimens = {
                 this.remove$(this.targetItem$);
                 this.targetItem$ = null;
                 updateCanvas();
-                addEmojiDna();
+                dnaCollection.add$();
                 !this.count$() && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$, 1), 2e3);
             }
         }
@@ -514,7 +514,29 @@ var news = {
         dom.children[1].children[1].innerText = '(404) NOT FOUND';
         dom.parentNode.scrollTop = dom.offsetTop;
     }
-}
+};
+
+var dnaCollection = {
+    el$: document.getElementById('h'),
+
+    show$() {
+        this.el$.style.display = STR_BLOCK;
+    },
+
+    hide$() {
+        this.el$.style.display = STR_NONE;
+    },
+
+    reset$() {
+        this.$el.innerText = '';
+    },
+
+    add$() {
+        var img = createElement(STR_IMG, this.el$, 'a d');
+        img.setAttribute('src', getEmojiDna());
+        this.show$();
+    }
+};
 
 var wiggler = {
     el$: getElementById('w'),
@@ -1540,7 +1562,7 @@ function updateUfoRay(delta) {
             break;
         case UFO_STATES.takingSpec$:
             pauseAction(ufoRayAction);
-            updateScale(ufoRay, 0.8, delta, true);
+            updateScale(ufoRay, 0.9, delta, true);
             break;
         case UFO_STATES.rayFailed$:
             pauseAction(ufoRayAction);
@@ -1707,12 +1729,6 @@ function updateTutorial() {
     }
 }
 
-function addEmojiDna() {
-    var h = document.getElementById('h');
-    var img = createElement(STR_IMG, h, 'a d');
-    img.setAttribute('src', getEmojiDna());
-}
-
 function reset() {
     trackTime = null;
     pathLength = 0;
@@ -1727,7 +1743,7 @@ function reset() {
     news.reset$();
 
     // remove emoji dna
-    document.getElementById('h').innerText = '';
+    dnaCollection.reset$();
 }
 
 // DEBUG
