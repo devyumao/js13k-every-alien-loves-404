@@ -143,7 +143,7 @@ var colors = {
     land$: '#9be889'
 };
 
-var inGameUi = document.getElementById('g');
+var inGameUi = getElementById('g');
 
 var spaceKeyBreak = true;
 
@@ -297,7 +297,7 @@ var medium = {
 
     remove$(item) {
         if (item) {
-            this.popupsEl$.removeChild(item._p)
+            item._p && this.popupsEl$.removeChild(item._p)
             item._p = null;
             item._n = null;
             this.group$.remove(item);
@@ -379,7 +379,7 @@ var medium = {
         news$.set404$(targetItem$._n);
         setTimeout(() => {
             if (targetItem$) {
-                targetItem$._p.classList.add('po');
+                targetItem$._p && targetItem$._p.classList.add('po');
                 setTimeout(() => this.remove$(targetItem$), 500);
             }      
         }, 3e3);
@@ -462,7 +462,7 @@ function getNearest(children) {
 }
 
 var news = {
-    el$: document.getElementById('t'),
+    el$: getElementById('t'),
 
     show$() {
         this.el$.style.display = STR_BLOCK;
@@ -519,7 +519,7 @@ var news = {
 };
 
 var dnaCollection = {
-    el$: document.getElementById('h'),
+    el$: getElementById('h'),
 
     show$() {
         this.el$.style.display = STR_BLOCK;
@@ -530,6 +530,7 @@ var dnaCollection = {
     },
 
     reset$() {
+        this.hide$();
         this.el$.innerText = '';
     },
 
@@ -665,7 +666,7 @@ function main() {
 
     animate();
 
-    var loading = document.getElementById('x');
+    var loading = getElementById('x');
     loading.innerHTML = 'PRESS ENTER';
 }
 
@@ -913,13 +914,16 @@ function initUfoLaserMixer() {
 }
 
 function addPointToTrack() {
-    var point = new THREE.Object3D();
+    var point;
+    if (track.children.length < MAX_TRACK_POINTS) {
+        point = new THREE.Object3D();
+    } else {
+        point = track.children.shift();
+    }
+
     point.position.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
     pivot.worldToLocal(point.position);
     track.add(point);
-    if (track.children.length > MAX_TRACK_POINTS) {
-        track.remove(track.children[0]);
-    }
 }
 
 function createLand() {
@@ -1765,9 +1769,12 @@ function reset() {
     pathLength = 0;
     lastPosition = null;
     trackMediaMap = {};
+    spaceKeyBreak = true;
+
+    track.remove(...track.children);
 
     cameraState = CAMERA_STATES.distant$;
-    ufoState = UFO_STATES.idle$;
+    // ufoState = UFO_STATES.idle$;
 
     ufoRay.scale.set(0, 0, 0);
     ufoLaser.scale.set(0, 0, 0);
