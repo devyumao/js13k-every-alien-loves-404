@@ -34,7 +34,7 @@ var UFO_THETA = 0;
 var LAYER_DEFAULT = 0;
 var LAYER_EARTH = 2;
 // var LAYER_BLOOM = 3;
-var MAX_TRACK_POINTS = 10;
+var MAX_TRACK_POINTS = 9;
 var MAX_MEDIUM = 8;
 var MAX_MEDIUM_PRESSURE = 5e6;
 var SPECIMEN_NEAR_THRES = 0.5;
@@ -316,7 +316,7 @@ var medium = {
         if (this.count$() < MAX_MEDIUM) {
             var key = Math.floor(pathLength / 30);
             if (key && !trackMediaMap[key]) {
-                var point = track.children[0];
+                var point = track.children.sort((a, b) => a._t - b._t)[0];
                 if (point) {
                     var sph = new THREE.Spherical();
                     sph.setFromVector3(point.position);
@@ -915,15 +915,21 @@ function initUfoLaserMixer() {
 
 function addPointToTrack() {
     var point;
+
     if (track.children.length < MAX_TRACK_POINTS) {
         point = new THREE.Object3D();
+        updatePos();
+        track.add(point);
     } else {
-        point = track.children.shift();
+        point = track.children[0];
+        updatePos();
     }
 
-    point.position.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
-    pivot.worldToLocal(point.position);
-    track.add(point);
+    function updatePos() {
+        point.position.setFromSphericalCoords(RADIUS_EARTH, UFO_PHI, UFO_THETA);
+        pivot.worldToLocal(point.position);
+        point._t = Date.now();
+    }
 }
 
 function createLand() {
