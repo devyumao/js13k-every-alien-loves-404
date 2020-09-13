@@ -233,7 +233,7 @@ var specimens = {
                 this.targetItem$ = null;
                 updateCanvas();
                 dnaCollection.add$();
-                !this.count$() && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$, 1), 2e3);
+                !this.count$() && setTimeout(() => updateGameState(GAME_STATES.gameOverEasingIn$, 1), 500);
             }
         }
     }
