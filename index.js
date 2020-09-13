@@ -145,6 +145,9 @@ var colors = {
 
 var inGameUi = document.getElementById('g');
 
+var spaceKeyBreak = true;
+
+var directionKeys = [87, 38, 83, 40, 65, 37, 68, 39];
 
 // DEBUG
 var stats;
@@ -527,7 +530,7 @@ var dnaCollection = {
     },
 
     reset$() {
-        this.$el.innerText = '';
+        this.el$.innerText = '';
     },
 
     add$() {
@@ -1110,11 +1113,14 @@ function initControl() {
         // console.log('KEY CODE', e.keyCode);
         // DEBUG END
 
-        keys[e.keyCode] = true;
-
         var keyEnter = 13;
         var keySpace = 32;
         var isKeyOk = [keyEnter, keySpace].indexOf(e.keyCode) > -1;
+        var isDirectionKey = !isKeyOk && directionKeys.includes(e.keyCode);
+
+        if (!isDirectionKey || cameraState === CAMERA_STATES.distant$) {
+            keys[e.keyCode] = true;
+        }
 
         if (gameState === GAME_STATES.welcome$) {
             if (isKeyOk) {
@@ -1134,8 +1140,13 @@ function initControl() {
             }
         }
     });
+
     document.addEventListener('keyup', function (e) {
         keys[e.keyCode] = false;
+
+        if (e.keyCode === 32) {
+            spaceKeyBreak = true;
+        }
     });
 }
 
@@ -1188,6 +1199,7 @@ function animate() {
     }
 
     if (gameState === GAME_STATES.inGame$) {
+        updateControl();
         vrControls.update();
     }
 
@@ -1212,7 +1224,7 @@ function animate() {
 function updateCamera() {
     const camPos = camera.position;
     const camRot = camera.rotation;
-    if (keys[32] && ufoState !== UFO_STATES.reducingRay$) {
+    if (keys[32] && spaceKeyBreak) {
         if (camPos.z > CAMERA_CLOSE_Z) {
             camPos.z = Math.max(camPos.z - CAMERA_ZOOM_VEL, CAMERA_CLOSE_Z);
             cameraState = CAMERA_STATES.zoomingIn$;
@@ -1471,7 +1483,7 @@ function updateUfoState() {
             }
             break;
         case UFO_STATES.rayFailed$:
-            if (!failMsg.running$ && !keys[32]) {
+            if (!failMsg.running$) {
                 ufoState = UFO_STATES.reducingRay$;
             }
             break;
@@ -1683,7 +1695,7 @@ function updateTutorial() {
     switch (tutorialState) {
         case TUTORIAL.ASDW$:
             if (!tutorialStepComplated[TUTORIAL.ASDW$]
-                && [87, 38, 83, 40, 65, 37, 68, 39].some(key => keys[key])
+                && directionKeys.some(key => keys[key])
             ) {
                 tutorialStepComplated[TUTORIAL.ASDW$] = 1;
                 setTimeout(() => {
@@ -1736,14 +1748,29 @@ function updateTutorial() {
     }
 }
 
+function updateControl() {
+    switch (ufoState) {
+        case UFO_STATES.reducingLaser$:
+        case UFO_STATES.reducingRay$:
+        case UFO_STATES.takingSpec$:
+            if (keys[32]) {
+                spaceKeyBreak = false;
+            }
+            break;
+    }
+}
+
 function reset() {
     trackTime = null;
     pathLength = 0;
     lastPosition = null;
     trackMediaMap = {};
 
-    // cameraState = CAMERA_STATES.distant$;
-    // ufoState = UFO_STATES.idle$;
+    cameraState = CAMERA_STATES.distant$;
+    ufoState = UFO_STATES.idle$;
+
+    ufoRay.scale.set(0, 0, 0);
+    ufoLaser.scale.set(0, 0, 0);
 
     specimens.reset$();
     medium.reset$();
