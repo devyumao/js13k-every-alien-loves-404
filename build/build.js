@@ -76,7 +76,7 @@ function buildJs() {
     let audioSrc = fs.readFileSync('./audio.js', 'utf-8');
     let vrSrc = fs.readFileSync('./vr-controls.js', 'utf-8');
     let emojiSrc = fs.readFileSync('./emoji.js', 'utf-8');
-    let tutorialSrc = fs.readFileSync('./emoji.js', 'utf-8');
+    let tutorialSrc = fs.readFileSync('./tutorial.js', 'utf-8');
 
     indexSrc = indexSrc.replace('// $$$_INJECT_AUDIO_$$$', audioSrc);
     indexSrc = indexSrc.replace('// $$$_INJECT_VR_$$$', vrSrc);
