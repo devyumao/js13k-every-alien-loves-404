@@ -381,13 +381,17 @@ var medium = {
             if (targetItem$) {
                 targetItem$._p && targetItem$._p.classList.add('po');
                 setTimeout(() => this.remove$(targetItem$), 500);
-            }      
+            }
         }, 3e3);
+
+        audio.playEffect$(EFFECT_MEDIA);
+
         if (tutorialState === TUTORIAL.AFTER_MEDIUM_APPEAR$
             || tutorialState === TUTORIAL.AFTER_MEDIA$
         ) {
             setTimeout(() => setTutorial(TUTORIAL.AFTER_MEDIA_CAUGHT$), 1e3);
         }
+
         updateCanvas();
     },
 
@@ -1456,7 +1460,6 @@ function updateUfoState() {
                     audio.playEffect$(EFFECT_404);
                 } else {
                     ufoState = UFO_STATES.increasingRay$;
-                    audio.playEffect$(EFFECT_RAY);
                 }
             }
             break;

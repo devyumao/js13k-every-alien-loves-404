@@ -35,11 +35,12 @@ zzfxR=44100 // sample rate
 
 
 
-var EFFECT_RAY = [,,734,.25,.37,.38,1,1.21,.4,,,.09,.27,.1,,,,.82,.06,.13];
+// var EFFECT_RAY = [,,734,.25,.37,.38,1,1.21,.4,,,.09,.27,.1,,,,.82,.06,.13];
 var EFFECT_DNA = [,,714,.09,.14,.42,1,.53,5.9,.1,199,.03,.1,.1,,,.1,.92,.08,.01];
 var EFEECT_FAIL = [,,113,.02,,.3,,.2,,.3,,,,,,,.03,.9,,.04];
 var EFFECT_404 = [,,73,,,.32,4,.62,-0.2,,,,,,,,,.92,.02,.29];
 var EFFECT_TWEET = [,,47,.06,.03,.01,1,.72,74,92,432,.03,.03,,-0.8];
+var EFFECT_MEDIA = [,,1433,.11,,0,,.55,-5.7,,-431,.09,.23,,,,.14,,.16];
 
 var SKIP_NOTE = -1;
 var TRACK_ID_MELODY = 0;
@@ -162,18 +163,18 @@ function init() {
     function initIndicator() {
         var tracks = [{
             patterns: [{
-                pattern: [[-3]],
+                pattern: [[-5]],
                 span: 1 / 8
             }],
-            volumn: 0.2,
+            volumn: 0.15,
             envelope: {
-                attack: 0.2,
+                attack: 0.4,
                 decay: 0.05,
-                sustain: 0.2,
+                sustain: 0.05,
                 release: 0.5,
                 value: 0.9
             },
-            wave: 'square'
+            wave: 'triangle'
         }];
 
         doInit(tracks, false, cb);
