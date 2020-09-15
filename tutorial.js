@@ -31,11 +31,11 @@ function setTutorial(state) {
             return;
 
         case TUTORIAL.ASDW$:
-            text = 'USE A/S/D/W TO MOVE AROUND.';
+            text = 'A/S/D/W TO MOVE.';
             break;
 
         case TUTORIAL.AFTER_ASDW$:
-            text = 'YOUR MISSION IS TO FIND 10 DNA SAMPLES ON THE EARTH. IF ONE IS NEAR YOU, THE BLUE LIGHT ON YOUR FLYING SAUCER WILL BLINK FASTER AND THE RADAR AUDIO MAY ALSO HELP.';
+            text = 'FIND 10 DNA SAMPLES. IF IS NEAR, THE BLUE LIGHT ON YOUR FLYING SAUCER WILL BLINK FASTER AND THE RADAR AUDIO MAY ALSO HELP.';
             setTimeout(() => {
                 tutorialStepComplated[TUTORIAL.AFTER_ASDW$] = 1;
             }, 10e3);
@@ -50,18 +50,18 @@ function setTutorial(state) {
             break;
 
         case TUTORIAL.AFTER_MEDIUM_APPEAR$:
-            text = 'OOPS... YOU WERE WITNESSED BY HUMANS. IF TOO MANY PEOPLE KNOW ABOUT YOU, THE SECRET AGREEMENT WITH SEVERAL GOVERNMENTS THAT ALLOWS YOU TO COLLECT DNA WILL BE TERMINATED. SO, WATCH OUT FOR THE POPULARITY OF EACH TWEET AND MAKE IT 404 WHEN NECESSARY.';
+            text = 'OOPS... YOU WERE WITNESSED BY HUMANS.';
             setTimeout(() => {
                 tutorialStepComplated[TUTORIAL.AFTER_MEDIUM_APPEAR$] = 1;
             }, 15e3);
             break;
 
         case TUTORIAL.AFTER_MEDIA$:
-            text = 'FLY OVER THE RED SPOT AND HOLD SPACE TO MAKE IT 404, THANKS TO THE GREAT TECHNOLOGY OF OUR THREE-BODY GALAXY.';
+            text = 'FLY OVER THE RED SPOT AND HOLD SPACE TO MAKE IT 404.';
             break;
 
         case TUTORIAL.AFTER_MEDIA_CAUGHT$:
-            text = 'GOOD JOB! NOW, COMPLETE YOUR GOAL OF COLLECTING 10 DNA SAMPLES. REMEMBER YOU ONLY HAVE TO MAKE THE TWEETS 404 WHEN NECESSARY. DON\'T WASTE TOO MUCH TIME ON IT.';
+            text = 'GOOD JOB! NOW, COMPLETE YOUR GOAL OF COLLECTING 10 DNA SAMPLES.';
             setTimeout(() => {
                 setTutorial(TUTORIAL.DONE$);
                 tutorialCompleted = true;

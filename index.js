@@ -769,6 +769,7 @@ function initRenderer() {
     renderer.setClearColor(colors.bgTop$, 0.0);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
+    document.body.appendChild( THREE.VRButton.createButton( renderer ) );
 
     // ====== UI ======
     uiCanvas = getElementById('u');
