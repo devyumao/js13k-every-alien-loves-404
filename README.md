@@ -1,6 +1,6 @@
 # EVERY ALIEN LOVES 404
 
-![Screenshot](https://webserver-1256209664.cos.ap-shanghai.myqcloud.com/alien/400.png)
+![Screenshot](https://webserver-1256209664.cos.ap-shanghai.myqcloud.com/alien/alien.gif)
 
 This is [@devyumao](https://github.com/devyumao) and [@Ovilia](https://github.com/Ovilia)'s entry for [Js13kGames](https://js13kgames.com/) 2020. This year's theme is `404`.
 
